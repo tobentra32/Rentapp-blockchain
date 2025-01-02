@@ -305,7 +305,7 @@ contract Rentdapp is Ownable, ReentrancyGuard {
 
     require(appartmentExist[aid], 'Apartment not found!');
     require(msg.value >= (totalPrice + totalSecurityFee), 'Insufficient fund');
-    require(datasCleared(aid, dates), 'One or more dates not available');
+    require(datesAreCleared(aid, dates), 'One or more dates not available');
 
     for (uint i = 0; i < dates.length; i++) {
       BookingStruct memory booking;
@@ -353,7 +353,7 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     emit CheckedIn(aid, bookingId, msg.sender);
   }
 
-  function checkOutApartment(uint aid, uint bookingId, uint[] memory dates) public nonReentrant {
+  function checkOutApartment(uint aid, uint bookingId) public nonReentrant {
       // Fetch the booking details
       BookingStruct memory booking = bookingsOf[aid][bookingId];
 
@@ -364,7 +364,7 @@ contract Rentdapp is Ownable, ReentrancyGuard {
       require(booking.checked, "Not checked in");
 
       // Ensure the dates are cleared
-      require(datasCleared(aid, dates), "Dates are already booked");
+      require(datesAreCleared(aid, dates), "Dates are already booked");
 
       // Mark the booking as cancelled
       bookingsOf[aid][bookingId].cancelled = true;
@@ -376,8 +376,15 @@ contract Rentdapp is Ownable, ReentrancyGuard {
       payTo(booking.tenant, refundAmount);
 
       // Remove the booked dates
-      for (uint i = 0; i < dates.length; i++) {
-          isDateBooked[aid][dates[i]] = false;
+    
+      
+      for (uint i = 0; i < bookedDates[aid].length; i++) {
+          if (bookedDates[aid][i] == booking.date) {
+              isDateBooked[aid][booking.date] = false;
+              bookedDates[aid][i] = bookedDates[aid][bookedDates[aid].length - 1];
+              bookedDates[aid].pop();
+              break;
+          }
       }
 
       // Emit an event (optional)
@@ -403,7 +410,7 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     require(!booking.checked, "Booking already checked in");
   
     // Check if new dates are available
-    require(datasCleared(aid, newDates), "One or more new dates are unavailable");
+    require(datesAreCleared(aid, newDates), "One or more new dates are unavailable");
   
     // Refund for old dates if required
     uint oldPrice = booking.price * bookedDates[aid].length;
@@ -472,16 +479,14 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     
   }
 
-  function claimFunds(uint aid, uint bookingId) public nonReentrant {
-    BookingStruct memory booking = bookingsOf[aid][bookingId];
-    require(msg.sender == apartments[aid].owner || msg.sender == owner(), 'Unauthorized entity');
-    require(!booking.checked, 'Already checked in');
+  
+  
+  function claimFunds(uint aid, uint bookingId) public {
+    
+    require(msg.sender == apartments[aid].owner, 'Unauthorized entity');
+    require(!bookingsOf[aid][bookingId].checked, 'Apartment already checked on this date!');
     require(booking.date < currentTime(), 'Not allowed, booking date not exceeded');
-
-    bookingsOf[aid][bookingId].abandoned = true;
-    uint tax = (booking.price * taxPercent) / 100;
-    uint fee = (booking.price * securityFee) / 100;
-
+  
     payTo(apartments[aid].owner, booking.price - tax);
     emit FundsClaimed(
         msg.sender,
@@ -490,18 +495,16 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     );
   }
 
-  function datasCleared(uint aid, uint[] memory dates) internal view returns (bool) {
-    bool dateNotUsed = true;
+  
 
+  function datesAreCleared(uint aid, uint[] memory dates) internal view returns (bool) {
+    bool lastCheck = true;
     for (uint i = 0; i < dates.length; i++) {
       for (uint j = 0; j < bookedDates[aid].length; j++) {
-        if (dates[i] == bookedDates[aid][j]) {``
-          dateNotUsed = false;
-        }
+        if (dates[i] == bookedDates[aid][j]) lastCheck = false;
       }
     }
-
-    return dateNotUsed;
+    return lastCheck;
   }
 
   function getBooking(uint aid, uint bookingId) public view returns (BookingStruct memory) {
