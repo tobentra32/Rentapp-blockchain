@@ -130,6 +130,7 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     token = TokenA(_tokenAddress)
     taxPercent = _taxPercent;
     securityFee = _securityFee;
+    owner = msg.sender;  // msg.sender is the address deploying the contract
   }
 
   modifier onlyOwner() {
@@ -182,8 +183,9 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     appartmentExist[apartment.id] = true;
     apartments[apartment.id] = apartment;
 
-    uint fee = utilityFee;
-    payTo(owner(), fee);
+    uint utility = utilityFee;
+   
+    payTo(msg.sender,owner(), utility);
 
     // Emit the ApartmentCreated event
     emit ApartmentCreated(
@@ -226,7 +228,11 @@ contract Rentdapp is Ownable, ReentrancyGuard {
 
     apartments[apartment.id] = apartment;
 
-    // Emit the ApartmentUpdated event
+    uint utility = utilityFee;
+
+    payTo(msg.sender,address(this), utility);
+
+    // Emit the ApartmentUpdated event```
     emit ApartmentUpdated(
         apartment.id,
         apartment.name,
@@ -249,6 +255,10 @@ contract Rentdapp is Ownable, ReentrancyGuard {
 
     // Emit the ApartmentDeleted event
     ApartmentStruct memory apartment = apartments[id];
+    uint utility = utilityFee;
+
+    payTo(msg.sender, owner, utility);
+    
     emit ApartmentDeleted(
         apartment.id,
         apartment.name,
@@ -304,7 +314,7 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     uint totalSecurityFee = (totalPrice * securityFee) / 100;
 
     require(appartmentExist[aid], 'Apartment not found!');
-    require(msg.value >= (totalPrice + totalSecurityFee), 'Insufficient fund');
+    require(token.balanceOf(payer) >= (totalPrice + totalSecurityFee), "Insufficient balance"); // Ensure user has enough tokens
     require(datesAreCleared(aid, dates), 'One or more dates not available');
 
     for (uint i = 0; i < dates.length; i++) {
@@ -325,8 +335,10 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     uint utility = utilityFee;
     uint collateral = booking.price * collateralPerent * day;
 
-    payTo(owner(), utility);
-    payTo(owner(), collateral);
+    
+
+    payTo(msg.sender, owner, utility);
+    payTo(msg.sender, address(this), collateral);
   }
   function checkInApartment(uint aid, uint bookingId) public nonReentrant {
     BookingStruct memory booking = bookingsOf[aid][bookingId];
@@ -346,9 +358,9 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     uint collateral = booking.price * collateralPerent * day;
     uint commision = booking.price * commisionPercent;
 
-    payTo(apartments[aid].owner, booking.price - commision);
-    payTo(owner(), commision);
-    payTo(booking.tenant, collateral);
+    payTo(msg.sender, apartments[aid].owner, booking.price - commision);
+    payTo(msg.sender, owner, commision);
+    payTo(address(this), booking.tenant, collateral);
 
     emit CheckedIn(aid, bookingId, msg.sender);
   }
@@ -467,7 +479,7 @@ contract Rentdapp is Ownable, ReentrancyGuard {
       // Refund tenant partially (if required)
       uint collateral = booking.price * collateralPerent * day; // Deduct security fee
 
-      payTo(apartments[aid].owner, collateral);
+      payTo(msg.sender,apartments[aid].owner, collateral);
 
       emit BookingCancelled(
           aid,
@@ -561,10 +573,53 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     return (block.timestamp * 1000) + 1000;
   }
 
-  function nonReentrant payTo(address to, uint256 amount) internal {
-    (bool success, ) = payable(to).call{ value: amount }('');
-    require(success);
+
+  function payTo(address payer, address recipient, uint256 amount) internal nonReentrant {
+
+    require(token.allowance(payer, address(this)) >= amount, "Insufficient allowance");
+    require(sender != address(0), "Invalid sender");
+    require(recipient != address(0), "Invalid recipient");
+    require(amount > 0, "Amount must be greater than zero");
+    
+
+    bool success = token.transferFrom(payer, recipient, amount); // Transfers tokens
+    require(success, "Token transfer failed");
+    
   }
+
+  function batchPayments(
+    address[] memory payer,
+    address[] memory recipients,
+    uint256[] memory amounts
+  ) internal {
+    require(recipients.length == amounts.length, "Mismatched arrays");
+
+    for (uint256 i = 0; i < recipients.length; i++) {
+        require(token.balanceOf(address(this)) >= amounts[i], "Insufficient contract balance");
+        bool success = token.transfer(recipients[i], amounts[i]);
+        require(success, "Token transfer failed");
+    }
+  }
+
+
+  function payUser(address recipient, uint256 amount) external onlyOwner {
+      require(recipient != address(0), "Invalid recipient address");
+      require(token.balanceOf(address(this)) >= amount, "Insufficient balance");
+
+      bool success = token.transfer(recipient, amount); // Transfer tokens
+      require(success, "Token transfer failed");
+
+      emit PaymentSent(recipient, amount);
+  }
+
+
+  // Withdraw tokens collected in contract by owner
+  function withdrawTokens(address recipient, uint256 amount) external onlyOwner nonReentrant {
+      require(token.balanceOf(address(this)) >= amount, "Insufficient contract balance");
+      require(token.transfer(recipient, amount), "Withdraw failed");
+      emit PaymentSent(recipient, amount);
+  }
+
 
   function withdrawFees() public onlyOwner {
       uint256 balance = token.balanceOf(address(this));
