@@ -472,9 +472,6 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     
   }
 
-
-  
-
   function claimFunds(uint aid, uint bookingId) public nonReentrant {
     BookingStruct memory booking = bookingsOf[aid][bookingId];
     require(msg.sender == apartments[aid].owner || msg.sender == owner(), 'Unauthorized entity');
@@ -506,13 +503,6 @@ contract Rentdapp is Ownable, ReentrancyGuard {
 
     return dateNotUsed;
   }
-
-
-  
-
-
-  
-
 
   function getBooking(uint aid, uint bookingId) public view returns (BookingStruct memory) {
     return bookingsOf[aid][bookingId];
@@ -560,8 +550,6 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     }
   }
 
-  
-
   function tenantBooked(uint aid) public view returns (bool) {
     return hasBooked[msg.sender][aid];
   }
@@ -574,8 +562,6 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     (bool success, ) = payable(to).call{ value: amount }('');
     require(success);
   }
-
-
 
   function withdrawFees() public onlyOwner {
       uint256 balance = token.balanceOf(address(this));
