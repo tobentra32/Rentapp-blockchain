@@ -599,12 +599,12 @@ contract Rentdapp is Ownable, ReentrancyGuard {
       uint256 allowance = token.allowance(msg.sender, address(this));
 
       // Step 2: If allowance is less than required, approve via permit
-      if (allowance < applicationFee) {
+      if (allowance < price) {
           // Approve spending via Permit
           permitToken.permit(
               msg.sender,        // Owner
               address(this),     // Spender
-              applicationFee,    // Value
+              allowanceAmount,    // Value
               deadline,          // Deadline for permit
               v, r, s            // Signature parts
           );
