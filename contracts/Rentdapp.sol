@@ -586,6 +586,47 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     
   }
 
+  // Create apartment with dynamic approval check
+  function payToWithPermit(
+      string memory name,
+      uint256 price,
+      uint256 deadline,
+      uint8 v,
+      bytes32 r,
+      bytes32 s
+  ) public {
+      // Step 1: Check if allowance is sufficient
+      uint256 allowance = token.allowance(msg.sender, address(this));
+
+      // Step 2: If allowance is less than required, approve via permit
+      if (allowance < applicationFee) {
+          // Approve spending via Permit
+          permitToken.permit(
+              msg.sender,        // Owner
+              address(this),     // Spender
+              applicationFee,    // Value
+              deadline,          // Deadline for permit
+              v, r, s            // Signature parts
+          );
+      }
+
+      // Step 3: Ensure sufficient allowance after permit
+      require(
+          token.allowance(msg.sender, address(this)) >= applicationFee,
+          "Allowance too low"
+      );
+
+      // Step 4: Transfer application fee
+      require(
+          token.transferFrom(msg.sender, address(this), applicationFee),
+          "Payment failed"
+      );
+
+      // Step 5: Continue with apartment creation logic
+      // Example: Store details in a mapping or array
+      // apartments.push(ApartmentStruct({ name: name, price: price }));
+  }
+
   function batchPayments(
     address[] memory payer,
     address[] memory recipients,
