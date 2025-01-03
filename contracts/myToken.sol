@@ -60,6 +60,28 @@ contract MyToken is AccessControl, ERC20Permit  {
         return true;
     }
 
+    // Approve using Permit2
+    function approveWithPermit2(
+        address token,
+        address spender,
+        uint256 amount,
+        uint256 deadline,
+        bytes memory signature
+    ) external {
+        permit2.permit(msg.sender, spender, amount, deadline, signature);
+    }
+
+    // Transfer using Permit2
+    function transferFromWithPermit2(
+        address token,
+        address from,
+        address to,
+        uint256 amount
+    ) external {
+        permit2.transferFrom(from, to, amount, token);
+    }
+
+
     function transferFrom(address from, address to, uint256 value) public returns (bool success) {
         require(balanceOf[from] >= value, "Insufficient balance");
         require(allowance[from][msg.sender] >= value, "Allowance exceeded");
