@@ -8,16 +8,14 @@ pragma solidity >=0.7.0 <0.9.0;
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/utils/Counters.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 
-interface ITokenA {
-    function balanceOf(address account) external view returns (uint256);
-    function mint(address to, uint256 amount) external;
-}
+
 
 
 contract Rentdapp is Ownable, ReentrancyGuard {
 
-  TokenA public token;
+  IERC20Permit public permitToken; // Permit Interface
 
   struct ApartmentStruct {
     uint id;
@@ -131,6 +129,7 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     taxPercent = _taxPercent;
     securityFee = _securityFee;
     owner = msg.sender;  // msg.sender is the address deploying the contract
+    permitToken = IERC20Permit(_tokenAddress); // Permit token
   }
 
   modifier onlyOwner() {
