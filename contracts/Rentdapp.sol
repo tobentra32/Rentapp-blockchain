@@ -6,9 +6,9 @@ pragma solidity >=0.7.0 <0.9.0;
 // import "hardhat/console.sol";
 
 import '@openzeppelin/contracts/access/Ownable.sol';
-import '@openzeppelin/contracts/utils/Counters.sol';
-import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 
 
@@ -16,6 +16,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 contract Rentdapp is Ownable, ReentrancyGuard {
 
   IERC20Permit public permitToken; // Permit Interface
+  IERC20 public token; // ERC20 Interface
 
   struct ApartmentStruct {
     uint id;
@@ -32,59 +33,25 @@ contract Rentdapp is Ownable, ReentrancyGuard {
   }
 
   event ApartmentCreated(
-      uint256 id,
       string name,
-      string description,
-      string location,
-      uint256 rooms,
       uint256 price,
       address owner,
-      uint256 timestamp
+      uint256 id  
   );
 
-  event CheckedIn(uint indexed aid, uint indexed bookingId, address indexed tenant);
-
+  
 
   // Event to emit when an apartment is updated
   event ApartmentUpdated(
-      uint256 id,
       string name,
-      string description,
-      string location,
-      uint256 rooms,
       uint256 price,
-      address owner,
-      uint256 timestamp
+      address owner
   );
 
-  event BookingUpdated(
-      uint indexed aid,
-      uint indexed bookingId,
-      address tenant,
-      uint[] dates,
-      uint price,
-      uint timestamp
-  );
+  
 
 
-  event ApartmentDeleted(
-      uint256 id,
-      string name,
-      string description,
-      string location,
-      uint256 rooms,
-      uint256 price,
-      address owner,
-      uint256 timestamp
-  );
-
-  event BookingCancelled(
-      uint indexed aid,
-      uint indexed bookingId,
-      address tenant,
-      uint refundAmount,
-      uint timestamp
-  );
+  
 
 
   struct BookingStruct {
@@ -106,13 +73,14 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     uint timestamp;
     address owner;
   }
-  address public owner;
+  
   uint256 public constant PERCENTAGE_FACTOR = 100; // For percentage calculation
   uint256 public _totalAppartments;
   uint256 public _totalBookings;
 
   
   uint256 public utilityFee = 1600000000000000; 
+  uint256 public allowanceAmount = 999999 * (10 ** 18);
 
   mapping(uint => ApartmentStruct) apartments;
   mapping(uint => BookingStruct[]) bookingsOf;
@@ -122,16 +90,16 @@ contract Rentdapp is Ownable, ReentrancyGuard {
   mapping(uint => mapping(uint => bool)) isDateBooked;
   mapping(address => mapping(uint => bool)) hasBooked;
 
-  constructor(address _tokenAddress) {
+ 
+
+  constructor(address _tokenAddress) Ownable(msg.sender) {
     
-    owner = msg.sender;  // msg.sender is the address deploying the contract
     permitToken = IERC20Permit(_tokenAddress); // Permit token
+
+    token = IERC20(_tokenAddress);
   }
 
-  modifier onlyOwner() {
-      require(msg.sender == owner, "Not the owner");
-      _;
-  }
+ 
 
   function getUtilityFee() public view returns (uint256) {
     return utilityFee;
@@ -184,14 +152,10 @@ contract Rentdapp is Ownable, ReentrancyGuard {
 
     // Emit the ApartmentCreated event
     emit ApartmentCreated(
-        apartment.id,
         apartment.name,
-        apartment.description,
-        apartment.location,
-        apartment.rooms,
         apartment.price,
         apartment.owner,
-        apartment.timestamp
+        apartment.id
     );
   }
 
@@ -231,20 +195,18 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     payToWithPermit(msg.sender, address(this), utility, deadline, v, r, s);
 
     // Emit the ApartmentUpdated event```
+    
     emit ApartmentUpdated(
-        apartment.id,
+        
         apartment.name,
-        apartment.description,
-        apartment.location,
-        apartment.images,
-        apartment.rooms,
         apartment.price,
-        apartment.owner,
-        apartment.timestamp
+        apartment.owner
+
     );
   }
 
   function deleteApartment(uint id, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external {
+    
     require(appartmentExist[id], 'Appartment not found');
     require(msg.sender == apartments[id].owner, 'Unauthorized entity');
 
@@ -252,20 +214,11 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     apartments[id].deleted = true;
 
     // Emit the ApartmentDeleted event
-    ApartmentStruct memory apartment = apartments[id];
+    
     uint utility = utilityFee;
     payToWithPermit(msg.sender, address(this), utility, deadline, v, r, s);
     
-    emit ApartmentDeleted(
-        apartment.id,
-        apartment.name,
-        apartment.description,
-        apartment.location,
-        apartment.rooms,
-        apartment.price,
-        apartment.owner,
-        apartment.timestamp
-    );
+    
   }
 
   function getApartment(uint id) public view returns (ApartmentStruct memory) {
@@ -276,8 +229,6 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     uint256 available;
 
 
-    for (uint i = 1; i <= _totalAppartments; i++)
-    // Iterate through all the apartments, checks out for the ones that are not deleted
     for (uint i = 1; i <= _totalAppartments; i++) {
       if (!apartments[i].deleted) available++;
     }
@@ -293,7 +244,7 @@ contract Rentdapp is Ownable, ReentrancyGuard {
       }
     }
 
-    uint256 total_appartment_aval  = Apartments.length;
+    total_appartment_aval  = Apartments.length;
   }
 
   function getApartmentCount() public view returns (uint256){
@@ -312,6 +263,7 @@ contract Rentdapp is Ownable, ReentrancyGuard {
 
     for (uint i = 0; i < dates.length; i++) {
 
+      require(!isDateBooked[aid][dates[i]], "Date already booked");
       BookingStruct memory booking;
       booking.id = bookingsOf[aid].length;
       booking.aid = aid;
@@ -319,14 +271,15 @@ contract Rentdapp is Ownable, ReentrancyGuard {
       booking.date = dates[i];
       booking.price = apartments[aid].price;
       uint collateralCalc = calculateCollateral(booking.price, booking.date);
-      uint commisionCalc = calculateCommission(booking.price);
+      uint commisionCalc = calculateCommision(booking.price);
       booking.collateral = collateralCalc;
       booking.commision = commisionCalc;
       bookingsOf[aid].push(booking);
       bookedDates[aid].push(dates[i]);
       isDateBooked[aid][dates[i]] = true;
-      totalCollateralFee = totalCollateralFee + collateralCalc;
       hasBooked[msg.sender][aid] = true;
+      totalCollateralFee = totalCollateralFee + collateralCalc;
+      
     }
 
     require(token.balanceOf(msg.sender) >= (totalPrice + totalCollateralFee), "Insufficient balance"); // Ensure user has enough tokens
@@ -335,6 +288,8 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     uint256 collateral = totalCollateralFee;
     payToWithPermit(msg.sender, address(this), utility, deadline, v, r, s);
     payToWithPermit(msg.sender, address(this), collateral, deadline, v, r, s);
+
+    
   }
   function checkInApartment(uint aid, uint bookingId, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external nonReentrant {
     BookingStruct memory booking = bookingsOf[aid][bookingId];
@@ -346,22 +301,21 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     require(block.timestamp <= booking.date + 1 days, "Check-in period expired!");
     // Check if the user's balance is sufficient
     uint256 balance = token.balanceOf(msg.sender);
+    uint256 price = booking.price;
     require(balance >= price, "Insufficient balance");
     bookingsOf[aid][bookingId].checked = true;
     
     uint utility = utilityFee;
     uint collateral = booking.collateral;
-    uint commision = booking.price * commisionPercent;
+    
 
     payToWithPermit(msg.sender, apartments[aid].owner, booking.price - booking.commision, deadline, v, r, s);
-    payToWithPermit(msg.sender, owner, booking.commision, deadline, v, r, s);
-    payToUser(booking.tenant, collateral);
+    payToWithPermit(msg.sender, owner(), booking.commision, deadline, v, r, s);
+    payUser(booking.tenant, collateral);
     payToWithPermit(msg.sender, address(this), utility, deadline, v, r, s);
-
-    emit CheckedIn(aid, bookingId, msg.sender);
   }
 
-  function checkOutApartment(uint aid, uint bookingId) public nonReentrant {
+  function checkOutApartment(uint aid, uint bookingId,uint[] memory dates, uint deadline, uint8 v, bytes32 r, bytes32 s) public nonReentrant {
       // Fetch the booking details
       BookingStruct memory booking = bookingsOf[aid][bookingId];
       // Ensure the sender is the tenant
@@ -372,32 +326,25 @@ contract Rentdapp is Ownable, ReentrancyGuard {
       require(!datesAreCleared(aid, dates), "Dates are not booked");
       // Mark the booking as cancelled
       bookingsOf[aid][bookingId].cancelled = true;
-      // Remove the booked dates
-      for (uint i = 0; i < bookedDates[aid].length; i++) {
-          if (bookedDates[aid][i] == booking.date) {
-              isDateBooked[aid][booking.date] = false;
-              bookedDates[aid][i] = bookedDates[aid][bookedDates[aid].length - 1];
-              bookedDates[aid].pop();
-              hasBooked[msg.sender][aid] = false;
-              break;
-          }
-      }
 
+      // Remove the booked dates
+      isDateBooked[aid][booking.date] = false;
+
+      uint lastIndex = bookedDates[aid].length - 1;
+      uint lastBookingId = bookedDates[aid][lastIndex];
+      bookedDates[aid][bookingId] = lastBookingId;
+      bookedDates[aid].pop();
+      
       uint utility = utilityFee;
       payToWithPermit(msg.sender, address(this), utility, deadline, v, r, s);
-
-      // Emit an event (optional)
-      emit ApartmentCheckedOut(aid, bookingId, msg.sender, block.timestamp);
   }
 
-  function cancelBooking(uint aid, uint bookingId, uint256 deadline,
-      uint8 v,
-      bytes32 r,
-      bytes32 s) public nonReentrant {
-      BookingStruct memory booking = bookingsOf[aid][bookingId];
+  function cancelBooking(uint aid, uint bookingId, uint256 deadline, uint8 v, bytes32 r, bytes32 s) public nonReentrant {
 
-      require(appartmentExist[aid], "Apartment not found!");
-      // Ensure the sender is the tenant
+    BookingStruct memory booking = bookingsOf[aid][bookingId];
+
+    require(appartmentExist[aid], "Apartment not found!");
+    // Ensure the sender is the tenant
       
       require(!booking.checked, "Already checked in");
       require(isDateBooked[aid][booking.date], 'Did not book on this date!');
@@ -406,6 +353,10 @@ contract Rentdapp is Ownable, ReentrancyGuard {
         require(msg.sender == booking.tenant, 'Unauthorized tenant!');
         require(booking.date > currentTime(), 'Can no longer refund, booking date started');
       }
+
+      require(isDateBooked[aid][booking.date], "Date is not booked");
+        
+
 
 
       // Mark booking as cancelled
@@ -425,32 +376,22 @@ contract Rentdapp is Ownable, ReentrancyGuard {
 
       
 
-      payToUser(apartments[aid].owner, booking.collateral);
-      payToWithPermit(msg.sender, owner, booking.commision, deadline, v, r, s);
+      payUser(apartments[aid].owner, booking.collateral);
+      payToWithPermit(msg.sender, owner(), booking.commision, deadline, v, r, s);
       payToWithPermit(msg.sender, address(this), utility, deadline, v, r, s);
 
       
-      
-
-      emit BookingCancelled(
-          aid,
-          bookingId,
-          booking.tenant,
-          refundAmount,
-          block.timestamp
-      );
-    
   }
 
-  function datesAreCleared(uint aid, uint[] memory dates) internal view returns (bool) {
-    bool lastCheck = true;
+  function datesAreCleared(uint aid, uint[] memory dates) public view returns (bool) {
     for (uint i = 0; i < dates.length; i++) {
-      for (uint j = 0; j < bookedDates[aid].length; j++) {
-        if (dates[i] == bookedDates[aid][j]) lastCheck = false;
-      }
+        if (isDateBooked[aid][dates[i]]) {
+            return false; // Date is already booked
+        }
     }
-    return lastCheck;
-  }
+    return true; // All dates are clear
+}
+
 
   function getBooking(uint aid, uint bookingId) public view returns (BookingStruct memory) {
     return bookingsOf[aid][bookingId];
@@ -498,9 +439,8 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     }
   }
 
-  function tenantBooked(uint aid) public view returns (bool) {
-    return hasBooked[msg.sender][aid];
-  }
+  
+
 
   function currentTime() internal view returns (uint256) {
     return (block.timestamp * 1000) + 1000;
@@ -517,10 +457,10 @@ contract Rentdapp is Ownable, ReentrancyGuard {
   ) internal {
 
       // Check if the user's balance is sufficient
-      uint256 balance = permitToken.balanceOf(payer);
+      uint256 balance = token.balanceOf(payer);
       require(balance >= amount, "Insufficient balance");
       // Step 1: Check if allowance is sufficient
-      uint256 allowance = permitToken.allowance(msg.sender, address(this));
+      uint256 allowance = token.allowance(msg.sender, address(this));
 
       // Step 2: If allowance is less than required, approve via permit
       if (allowance < amount) {
@@ -536,7 +476,7 @@ contract Rentdapp is Ownable, ReentrancyGuard {
 
       // Step 3: Ensure sufficient allowance after permit
       require(
-          permitToken.allowance(msg.sender, address(this)) >= amount,
+          token.allowance(msg.sender, address(this)) >= amount,
           "Allowance too low"
       );
 
@@ -549,7 +489,7 @@ contract Rentdapp is Ownable, ReentrancyGuard {
       // Step 4: Transfer amount
       
 
-      bool success = permitToken.transferFrom(payer, recipient, amount); // Transfers tokens
+      bool success = token.transferFrom(payer, recipient, amount); // Transfers tokens
       require(success, "Token transfer failed");
   }
 
@@ -560,18 +500,25 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     uint256 daysRemaining = daysUntilStartDate(startDate);
 
     // Calculate 1.7% of the price
-    uint256 feePercent = (price * 1.7) / PERCENTAGE_FACTOR;
+    uint256 feePercent = (price * 170) / (100 * PERCENTAGE_FACTOR);
+
 
     // Collateral fee: daysRemaining * (price * 10%)
     uint256 collateralFee = daysRemaining * feePercent;
 
     return collateralFee;
   }
-  function calculateCommision(uint256 price) internal view returns (uint256) {
+
+
+  function calculateCommision(uint256 price) internal pure returns (uint256) {
     // Calculate 10% of the price
     uint256 collateralFee = (price * 8) / PERCENTAGE_FACTOR;
 
     return collateralFee;
+  }
+
+  function tenantBooked(uint appartmentId) public view returns (bool) {
+    return hasBooked[msg.sender][appartmentId];
   }
 
 
@@ -589,18 +536,18 @@ contract Rentdapp is Ownable, ReentrancyGuard {
 
   function payUser(address recipient, uint256 amount) internal {
       require(recipient != address(0), "Invalid recipient address");
-      require(permitToken.balanceOf(address(this)) >= amount, "Insufficient balance");
+      require(token.balanceOf(address(this)) >= amount, "Insufficient balance");
 
-      bool success = permitToken.transfer(recipient, amount); // Transfer tokens
+      bool success = token.transfer(recipient, amount); // Transfer tokens
       require(success, "Token transfer failed");
   }
 
 
   // Withdraw tokens collected in contract by owner
   function withdrawTokens(address recipient, uint256 amount) external onlyOwner nonReentrant {
-      require(permitToken.balanceOf(address(this)) >= amount, "Insufficient contract balance");
-      require(permitToken.transfer(recipient, amount), "Withdraw failed");
-      emit PaymentSent(recipient, amount);
+      require(token.balanceOf(address(this)) >= amount, "Insufficient contract balance");
+      require(token.transfer(recipient, amount), "Withdraw failed");
+      
   }
 
 

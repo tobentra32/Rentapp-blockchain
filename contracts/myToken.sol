@@ -1,145 +1,74 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
-
-contract MyToken is AccessControl, ERC20Permit  {
-
-
-
-    string public name = "IleToken";
-    string public symbol = "ILE";
-    uint8 public decimals = 18;
-    uint256 public totalSupply;
-
-    uint256 public tokenPrice;
-
-    mapping(address => uint256) public balanceOf;
-    mapping(address => mapping(address => uint256)) public allowance;
-
+contract CustomToken is ERC20Permit, AccessControl {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
-    event Mint(address indexed minter, address indexed to, uint256 value);  // Mint event
+    uint256 private _maxTotalSupply;     // Maximum supply of tokens
+    uint256 public tokenPrice;           // Price of 1 token in wei
 
-    constructor(uint256 initialSupply, uint256 initialTokenPrice) {
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(MINTER_ROLE, msg.sender);
-        totalSupply = initialSupply * 10 ** uint256(decimals);
-        balanceOf[msg.sender] = totalSupply;
-
-        tokenPrice = initialTokenPrice;
+    constructor(
+        string memory name,
+        string memory symbol,
+        uint256 maxTotalSupply,
+        uint256 price
+    ) ERC20(name, symbol) ERC20Permit(name) {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender); // Set deployer as admin
+        _grantRole(MINTER_ROLE, msg.sender);        // Set deployer as minter
+        _maxTotalSupply = maxTotalSupply;           // Set max supply
+        tokenPrice = price;                         // Set price per token
     }
 
-    function setTokenPrice(uint256 newPrice) public {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Caller is not an admin");
+    /**
+     * @dev Allows users to buy tokens by sending ETH.
+     * Grants MINTER_ROLE temporarily to mint tokens and then revokes it.
+     * @param amount Amount of tokens to buy.
+     */
+    function buyTokens(uint256 amount) external payable {
+        require(
+            msg.value == amount * tokenPrice,
+            "Incorrect ETH sent"
+        );
+        require(
+            totalSupply() + amount <= _maxTotalSupply,
+            "Mint exceeds max supply"
+        );
+
+        // Grant MINTER_ROLE temporarily
+        _grantRole(MINTER_ROLE, msg.sender);
+
+        // Mint tokens to buyer
+        _mint(msg.sender, amount);
+
+        // Revoke MINTER_ROLE immediately after minting
+        _revokeRole(MINTER_ROLE, msg.sender);
+    }
+
+    /**
+     * @dev Updates the token price.
+     * @param newPrice New price per token in wei.
+     */
+    function setTokenPrice(uint256 newPrice) external onlyRole(DEFAULT_ADMIN_ROLE) {
         tokenPrice = newPrice;
     }
-    function _transfer(address from, address to, uint256 value) internal {
-        require(to != address(0), "Cannot transfer to the zero address");
-        require(balanceOf[from] >= value, "Insufficient balance");
-
-        balanceOf[from] -= value;
-        balanceOf[to] += value;
-
-        emit Transfer(from, to, value);
+    function getTokenPrice() public view returns (uint256) {
+        return tokenPrice;
     }
 
-    function transfer(address to, uint256 value) public returns (bool success) {
-        require(balanceOf[msg.sender] >= value, "Insufficient balance");
-        _transfer(msg.sender, to, value);
-        return true;
+    /**
+     * @dev Allows the admin to withdraw collected ETH.
+     */
+    function withdraw() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        payable(msg.sender).transfer(address(this).balance);
     }
 
-    function approve(address spender, uint256 value) public returns (bool success) {
-        allowance[msg.sender][spender] = value;
-        emit Approval(msg.sender, spender, value);
-        return true;
-    }
-
-    // Approve using Permit2
-    function approveWithPermit2(
-        address token,
-        address spender,
-        uint256 amount,
-        uint256 deadline,
-        bytes memory signature
-    ) external {
-        permit2.permit(msg.sender, spender, amount, deadline, signature);
-    }
-
-    // Transfer using Permit2
-    function transferFromWithPermit2(
-        address token,
-        address from,
-        address to,
-        uint256 amount
-    ) external {
-        permit2.transferFrom(from, to, amount, token);
-    }
-
-
-    function transferFrom(address from, address to, uint256 value) public returns (bool success) {
-        require(balanceOf[from] >= value, "Insufficient balance");
-        require(allowance[from][msg.sender] >= value, "Allowance exceeded");
-        _transfer(from, to, value);
-        allowance[from][msg.sender] -= value;
-        emit Transfer(from, to, value);
-        return true;
-    }
-
-    function mint(address to, uint256 value) public returns (bool success) {
-        require(hasRole(MINTER_ROLE, msg.sender), "Caller is not a minter");
-        totalSupply += value;
-        balanceOf[to] += value;
-        emit Mint(msg.sender, to, value); // Emit mint event
-        emit Transfer(address(0), to, value);
-        return true;
-    }
-
-
-    function burn(uint256 value) public returns (bool success) {
-        require(balanceOf[msg.sender] >= value, "Insufficient balance to burn");
-        totalSupply -= value;
-        balanceOf[msg.sender] -= value;
-        emit Transfer(msg.sender, address(0), value);
-        return true;
-    }
-
-    // Function to withdraw the funds from the contract
-    function withdraw() public {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Caller is not an admin");
-        payable(msg.sender).transfer(address(this).balance);  // Send all contract funds to the admin
-    }
-    // Public minting function where users pay Ether to mint tokens
-    function buyTokens() public payable returns (bool success) {
-        require(msg.value > 0, "Send Amoy to buy tokens");
-
-        // Calculate the number of tokens to mint based on the token price
-        uint256 tokensToMint = (msg.value * 10 ** uint256(decimals)) / tokenPrice;
-
-        // Mint the tokens for the buyer (msg.sender)
-        totalSupply += tokensToMint;
-        balanceOf[msg.sender] += tokensToMint;
-
-        emit Transfer(address(0), msg.sender, tokensToMint);
-        return true;
-    }
-
-    function checkAllowance(address owner, address spender) public view returns (uint256 remaining) {
-        return allowance[owner][spender];
-    }
-
-    function grantMinterRole(address account) public {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Caller is not an admin");
-        grantRole(MINTER_ROLE, account);
-    }
-
-    function revokeMinterRole(address account) public {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Caller is not an admin");
-        revokeRole(MINTER_ROLE, account);
+    /**
+     * @dev Returns the max total supply of tokens.
+     */
+    function getMaxTotalSupply() public view returns (uint256) {
+        return _maxTotalSupply;
     }
 }
