@@ -209,6 +209,17 @@ describe("Rentdapp  contract", function () {
     it('Should confirm apartment update', async () => {
 
       const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
+
+      // Step 1: addr1 purchases tokens from MyToken
+      const purchaseAmount = ethers.utils.parseEther("1"); // 1 Ether
+      const tokenPrice = 100; // 1 ETH = 100 tokens (as per MyToken contract)
+
+      // addr1 purchases tokens
+      await permitToken.connect(addr1).buyTokens({ value: purchaseAmount });
+
+      // Verify addr1 received tokens
+      const addr1Balance = await permitToken.balanceOf(addr1.address);
+      expect(addr1Balance).to.equal(purchaseAmount.mul(tokenPrice));
       const tx = await rentdapp.connect(owner).createAppartment(name, description, location, images.join(','), rooms, toWei(price), deadline, v, r, s);
       const receipt = await tx.wait();
 
@@ -216,7 +227,7 @@ describe("Rentdapp  contract", function () {
       expect(result.name).to.be.equal(name)
       expect(result.price).to.be.equal(toWei(price))
     
-      await rentdapp.connect(owner).updateAppartment(id,newName,description,location,images.join(','),rooms,toWei(newPrice) , deadline, v, r, s)
+      await rentdapp.connect(addr1).updateAppartment(id,newName,description,location,images.join(','),rooms,toWei(newPrice) , deadline, v, r, s)
     
       result = await contract.getApartment(id)
       expect(result.name).to.be.equal(newName)
@@ -224,24 +235,66 @@ describe("Rentdapp  contract", function () {
     });
 
     it("Should revert if unauthorized user attempts to update", async function () {
-      const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
-      await rentdapp.connect(owner).createAppartment(name, description, location, images.join(','), rooms, toWei(price), deadline, v, r, s);
 
-      await rentdapp.connect(addr1).updateAppartment(id,newName,description,location,images.join(','),rooms,toWei(newPrice) , deadline, v, r, s).to.be.revertedWith("Unauthorized entity");
+      const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
+
+      // Step 1: addr1 purchases tokens from MyToken
+      const purchaseAmount = ethers.utils.parseEther("1"); // 1 Ether
+      const tokenPrice = 100; // 1 ETH = 100 tokens (as per MyToken contract)
+
+      // addr1 purchases tokens
+      await permitToken.connect(addr1).buyTokens({ value: purchaseAmount });
+
+      // Verify addr1 received tokens
+      const addr1Balance = await permitToken.balanceOf(addr1.address);
+      expect(addr1Balance).to.equal(purchaseAmount.mul(tokenPrice));
+      await rentdapp.connect(addr1).createAppartment(name, description, location, images.join(','), rooms, toWei(price), deadline, v, r, s);
+
+      await rentdapp.connect(addr2).updateAppartment(id,newName,description,location,images.join(','),rooms,toWei(newPrice) , deadline, v, r, s).to.be.revertedWith("Unauthorized entity");
     });
 
     it("Should revert if apartment does not exist", async function () {
       const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
-      await rentdapp.connect(owner).createAppartment(name, description, location, images.join(','), rooms, toWei(price), deadline, v, r, s);
-      await rentdapp.connect(owner).updateAppartment(999,newName,description,location,images.join(','),rooms,toWei(newPrice) , deadline, v, r, s).to.be.revertedWith("Apartment does not exist");
+      // Step 1: addr1 purchases tokens from MyToken
+      const purchaseAmount = ethers.utils.parseEther("1"); // 1 Ether
+      const tokenPrice = 100; // 1 ETH = 100 tokens (as per MyToken contract)
+
+      // addr1 purchases tokens
+      await permitToken.connect(addr1).buyTokens({ value: purchaseAmount });
+
+      // Verify addr1 received tokens
+      const addr1Balance = await permitToken.balanceOf(addr1.address);
+      expect(addr1Balance).to.equal(purchaseAmount.mul(tokenPrice));
+      await rentdapp.connect(addr1).createAppartment(name, description, location, images.join(','), rooms, toWei(price), deadline, v, r, s);
+      await rentdapp.connect(addr1).updateAppartment(999,newName,description,location,images.join(','),rooms,toWei(newPrice) , deadline, v, r, s).to.be.revertedWith("Apartment does not exist");
     });
     it("Should revert if deadline has passed", async function () {
       const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
-      await rentdapp.connect(owner).createAppartment(name, description, location, images.join(','), rooms, toWei(price), deadline, v, r, s);
-      await rentdapp.connect(owner).updateAppartment(id,newName,description,location,images.join(','),rooms,toWei(newPrice) , Math.floor(Date.now() / 1000) - 3600, v, r, s).to.be.revertedWith("Deadline has passed");
+      // Step 1: addr1 purchases tokens from MyToken
+      const purchaseAmount = ethers.utils.parseEther("1"); // 1 Ether
+      const tokenPrice = 100; // 1 ETH = 100 tokens (as per MyToken contract)
+
+      // addr1 purchases tokens
+      await permitToken.connect(addr1).buyTokens({ value: purchaseAmount });
+
+      // Verify addr1 received tokens
+      const addr1Balance = await permitToken.balanceOf(addr1.address);
+      expect(addr1Balance).to.equal(purchaseAmount.mul(tokenPrice));
+      await rentdapp.connect(addr1).createAppartment(name, description, location, images.join(','), rooms, toWei(price), deadline, v, r, s);
+      await rentdapp.connect(addr1).updateAppartment(id,newName,description,location,images.join(','),rooms,toWei(newPrice) , Math.floor(Date.now() / 1000) - 3600, v, r, s).to.be.revertedWith("Deadline has passed");
     });
     it("Should revert if signature is invalid", async function () {
       const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
+      // Step 1: addr1 purchases tokens from MyToken
+      const purchaseAmount = ethers.utils.parseEther("1"); // 1 Ether
+      const tokenPrice = 100; // 1 ETH = 100 tokens (as per MyToken contract)
+
+      // addr1 purchases tokens
+      await permitToken.connect(addr1).buyTokens({ value: purchaseAmount });
+
+      // Verify addr1 received tokens
+      const addr1Balance = await permitToken.balanceOf(addr1.address);
+      expect(addr1Balance).to.equal(purchaseAmount.mul(tokenPrice));
       await rentdapp.connect(owner).createAppartment(name, description, location, images.join(','), rooms, toWei(price), deadline, v, r, s);
       await rentdapp.connect(owner).updateAppartment(id,newName,description,location,images.join(','),rooms,toWei(newPrice) , deadline, 1, r, s).to.be.revertedWith("Invalid signature");
     });
@@ -252,12 +305,22 @@ describe("Rentdapp  contract", function () {
 
     it("Should delete an apartment successfully", async function () {
       const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
-      await rentdapp.connect(owner).createAppartment(name, description, location, images.join(','), rooms, toWei(price), deadline, v, r, s);
+      // Step 1: addr1 purchases tokens from MyToken
+      const purchaseAmount = ethers.utils.parseEther("1"); // 1 Ether
+      const tokenPrice = 100; // 1 ETH = 100 tokens (as per MyToken contract)
+
+      // addr1 purchases tokens
+      await permitToken.connect(addr1).buyTokens({ value: purchaseAmount });
+
+      // Verify addr1 received tokens
+      const addr1Balance = await permitToken.balanceOf(addr1.address);
+      expect(addr1Balance).to.equal(purchaseAmount.mul(tokenPrice));
+      await rentdapp.connect(addr1).createAppartment(name, description, location, images.join(','), rooms, toWei(price), deadline, v, r, s);
       result = await rentdapp.getApartments();
       expect(result).to.have.lengthOf(1);
       result = await rentdapp.getApartment(id);
       expect(result.deleted).to.be.equal(false)    
-      await rentdapp.connect(owner).deleteApartment(id, deadline, v, r, s);
+      await rentdapp.connect(addr1).deleteApartment(id, deadline, v, r, s);
       result = await contract.getApartments()
       expect(result).to.have.lengthOf(0)
       const apartment = await rentdapp.getApartment(id);
@@ -266,13 +329,25 @@ describe("Rentdapp  contract", function () {
     
     it("Should revert if unauthorized user attempts to delete", async function () {
       const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
-      await rentdapp.connect(addr1).deleteApartment(id, deadline, v, r, s).to.be.revertedWith("Unauthorized entity");
+      // Step 1: addr1 purchases tokens from MyToken
+      const purchaseAmount = ethers.utils.parseEther("1"); // 1 Ether
+      const tokenPrice = 100; // 1 ETH = 100 tokens (as per MyToken contract)
+
+      // addr1 purchases tokens
+      await permitToken.connect(addr1).buyTokens({ value: purchaseAmount });
+
+      // Verify addr1 received tokens
+      const addr1Balance = await permitToken.balanceOf(addr1.address);
+      expect(addr1Balance).to.equal(purchaseAmount.mul(tokenPrice));
+      await rentdapp.connect(addr1).createAppartment(name, description, location, images.join(','), rooms, toWei(price), deadline, v, r, s);
+      await rentdapp.connect(addr2).deleteApartment(id, deadline, v, r, s).to.be.revertedWith("Unauthorized entity");
     });
   });
 
   describe("Booking Functions", function () {
     it("Should book an apartment", async function () {
       const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
+      
       // Create an apartment
 
       await contract.connect(owner).createAppartment(name, description, location, images.join(','), rooms, toWei(price), deadline, v, r, s);
