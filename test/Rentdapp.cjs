@@ -175,13 +175,13 @@ describe("Rentdapp  contract", function () {
 
     it('Should create an apartment successfully', async () => {
 
-      const tx = await rentdapp.connect(owner).createAppartment(name, description, location, images.join(','), rooms, toWei(price), deadline, v, r, s);
+      const tx = await rentdapp.connect(addr1).createAppartment(name, description, location, images.join(','), rooms, toWei(price), deadline, v, r, s);
 
       const receipt = await tx.wait();
       await expect(tx).to.emit(rentdapp, "ApartmentCreated").withArgs(
         "Apartment 1",
         ethers.utils.parseEther("1"),
-        owner.address,
+        addr1.address,
         1 // Apartment ID
       );
 
@@ -197,21 +197,8 @@ describe("Rentdapp  contract", function () {
     it("Should revert if required fields are empty", async function () {
       const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
 
-
-      await expect(
-        rentdapp.createApartment(
-          "",
-          "A nice place",
-          "Downtown",
-          "image.jpg",
-          3,
-          ethers.utils.parseEther("1"),
-          Math.floor(Date.now() / 1000) + 3600, // deadline
-          0, // v
-          ethers.utils.keccak256("0x1234"), // r
-          ethers.utils.keccak256("0x5678") // s
-        )
-      ).to.be.revertedWith("Name cannot be empty");
+      await expect( rentdapp.connect(addr1).createAppartment("", description, location, images.join(','), rooms, toWei(price), deadline, v, r, s)
+        ).to.be.revertedWith("Name cannot be empty");
     });
   });
 
