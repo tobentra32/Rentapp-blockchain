@@ -30,7 +30,7 @@ contract CustomToken is ERC20Permit, AccessControl {
     function buyTokens(uint256 amount) external payable {
         require(
             msg.value == amount * tokenPrice,
-            "Incorrect ETH sent"
+            "Incorrect POL sent"
         );
         require(
             totalSupply() + amount <= _maxTotalSupply,

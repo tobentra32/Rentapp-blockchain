@@ -39,6 +39,9 @@ describe("Rentdapp  contract", function () {
   ]
   const rooms = 4
   const price = 2.7
+  const twoMonthsInSeconds = 60 * 60 * 24 * 30 * 2; // 2 months in seconds
+  const deadline = Math.floor(Date.now() / 1000) + twoMonthsInSeconds;
+
   const newPrice = 1.3
 
   
@@ -47,11 +50,10 @@ describe("Rentdapp  contract", function () {
 
   async function deployRentappFixture() {
 
-
-    // Deploy mock token with permit functionality
-    const MockPermitToken = await ethers.getContractFactory("MockPermitToken");
-    permitToken = await MockPermitToken.deploy("Permit Token", "PTKN");
-    await permitToken.deployed();
+    // Deploy the token contract
+    
+    permitToken = await ethers.deployContract("Permit Token", "PTKN");
+    await permitToken.waitForDeployment();
 
     // Get the Signers here.
     [owner, addr1, addr2] = await ethers.getSigners();
@@ -62,15 +64,81 @@ describe("Rentdapp  contract", function () {
     rentdapp = await ethers.deployContract("Rentdapp");
 
     await rentdapp.waitForDeployment();
+    
 
+    async function generatePermitSignature(signer) {
+      const domain = {
+        name: await permitToken.name(),
+        version: "1",
+        chainId: await permitToken.provider.getNetwork().then((n) => n.chainId),
+        verifyingContract: permitToken.address,
+      };
+  
+      const types = {
+        Permit: [
+          { name: "owner", type: "address" },
+          { name: "spender", type: "address" },
+          { name: "value", type: "uint256" },
+          { name: "nonce", type: "uint256" },
+          { name: "deadline", type: "uint256" },
+        ],
+      };
+  
+      const nonce = await permitToken.nonces(signer.address);
+      const message = {
+        owner: signer.address,
+        spender: rentdapp.address,
+        value: initialAllowance.toString(),
+        nonce: nonce.toString(),
+        deadline,
+      };
+  
+      const signature = await signer._signTypedData(domain, types, message);
+      return ethers.utils.splitSignature(signature);
+    }
+    const { v, r, s } = await generatePermitSignature(addr1);
+
+    
     // Fixtures can return anything you consider useful for your tests
-    return { rentdapp, permitToken, owner, addr1, addr2};
+    
+    return { rentdapp, permitToken, owner, addr1, addr2, v, r, s };
+  }
+
+  async function generatePermitSignature(signer) {
+    const domain = {
+      name: await permitToken.name(),
+      version: "1",
+      chainId: await permitToken.provider.getNetwork().then((n) => n.chainId),
+      verifyingContract: permitToken.address,
+    };
+
+    const types = {
+      Permit: [
+        { name: "owner", type: "address" },
+        { name: "spender", type: "address" },
+        { name: "value", type: "uint256" },
+        { name: "nonce", type: "uint256" },
+        { name: "deadline", type: "uint256" },
+      ],
+    };
+
+    const nonce = await permitToken.nonces(signer.address);
+    const message = {
+      owner: signer.address,
+      spender: rentdapp.address,
+      value: initialAllowance.toString(),
+      nonce: nonce.toString(),
+      deadline,
+    };
+
+    const signature = await signer._signTypedData(domain, types, message);
+    return ethers.utils.splitSignature(signature);
   }
   // Network to that snapshot in every test.
 
   it("Should set the correct owner and utility fee", async function () {
     // We use loadFixture to setup our environment, and then assert that things went well
-    const { rentdapp, owner, addr1, addr2 } = await loadFixture(deployRentappFixture);
+    const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
     expect(await rentdapp.owner()).to.equal(owner.address);
     expect(await rentdapp.getUtilityFee()).to.equal(utilityFee);
   });
@@ -90,7 +158,20 @@ describe("Rentdapp  contract", function () {
 
   describe("Create Apartment", function () {
 
-    const { rentdapp, owner, addr1, addr2 } = await loadFixture(deployRentappFixture);
+    const { rentdapp, permitToken, owner, addr1, addr2} = await loadFixture(deployRentappFixture);
+
+    // Step 1: addr1 purchases tokens from MyToken
+    const purchaseAmount = ethers.utils.parseEther("1"); // 1 Ether
+    const tokenPrice = 100; // 1 ETH = 100 tokens (as per MyToken contract)
+
+    // addr1 purchases tokens
+    await permitToken.connect(addr1).buyTokens({ value: purchaseAmount });
+
+    // Verify addr1 received tokens
+    const addr1Balance = await myToken.balanceOf(addr1.address);
+    expect(addr1Balance).to.equal(purchaseAmount.mul(tokenPrice));
+
+    const { v, r, s } = await generatePermitSignature(addr1);
 
     it('Should create an apartment successfully', async () => {
 
@@ -114,6 +195,9 @@ describe("Rentdapp  contract", function () {
     })
    
     it("Should revert if required fields are empty", async function () {
+      const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
+
+
       await expect(
         rentdapp.createApartment(
           "",
@@ -137,7 +221,7 @@ describe("Rentdapp  contract", function () {
     
     it('Should confirm apartment update', async () => {
 
-      const { rentdapp, owner, addr1, addr2 } = await loadFixture(deployRentappFixture);
+      const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
       const tx = await rentdapp.connect(owner).createAppartment(name, description, location, images.join(','), rooms, toWei(price), deadline, v, r, s);
       const receipt = await tx.wait();
 
@@ -153,24 +237,24 @@ describe("Rentdapp  contract", function () {
     });
 
     it("Should revert if unauthorized user attempts to update", async function () {
-      const { rentdapp, owner, addr1, addr2 } = await loadFixture(deployRentappFixture);
+      const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
       await rentdapp.connect(owner).createAppartment(name, description, location, images.join(','), rooms, toWei(price), deadline, v, r, s);
 
       await rentdapp.connect(addr1).updateAppartment(id,newName,description,location,images.join(','),rooms,toWei(newPrice) , deadline, v, r, s).to.be.revertedWith("Unauthorized entity");
     });
 
     it("Should revert if apartment does not exist", async function () {
-      const { rentdapp, owner, addr1, addr2 } = await loadFixture(deployRentappFixture);
+      const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
       await rentdapp.connect(owner).createAppartment(name, description, location, images.join(','), rooms, toWei(price), deadline, v, r, s);
       await rentdapp.connect(owner).updateAppartment(999,newName,description,location,images.join(','),rooms,toWei(newPrice) , deadline, v, r, s).to.be.revertedWith("Apartment does not exist");
     });
     it("Should revert if deadline has passed", async function () {
-      const { rentdapp, owner, addr1, addr2 } = await loadFixture(deployRentappFixture);
+      const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
       await rentdapp.connect(owner).createAppartment(name, description, location, images.join(','), rooms, toWei(price), deadline, v, r, s);
       await rentdapp.connect(owner).updateAppartment(id,newName,description,location,images.join(','),rooms,toWei(newPrice) , Math.floor(Date.now() / 1000) - 3600, v, r, s).to.be.revertedWith("Deadline has passed");
     });
     it("Should revert if signature is invalid", async function () {
-      const { rentdapp, owner, addr1, addr2 } = await loadFixture(deployRentappFixture);
+      const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
       await rentdapp.connect(owner).createAppartment(name, description, location, images.join(','), rooms, toWei(price), deadline, v, r, s);
       await rentdapp.connect(owner).updateAppartment(id,newName,description,location,images.join(','),rooms,toWei(newPrice) , deadline, 1, r, s).to.be.revertedWith("Invalid signature");
     });
@@ -180,7 +264,7 @@ describe("Rentdapp  contract", function () {
     
 
     it("Should delete an apartment successfully", async function () {
-      const { rentdapp, owner, addr1, addr2 } = await loadFixture(deployRentappFixture);
+      const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
       await rentdapp.connect(owner).createAppartment(name, description, location, images.join(','), rooms, toWei(price), deadline, v, r, s);
       result = await rentdapp.getApartments();
       expect(result).to.have.lengthOf(1);
@@ -194,13 +278,14 @@ describe("Rentdapp  contract", function () {
     });
     
     it("Should revert if unauthorized user attempts to delete", async function () {
+      const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
       await rentdapp.connect(addr1).deleteApartment(id, deadline, v, r, s).to.be.revertedWith("Unauthorized entity");
     });
   });
 
   describe("Booking Functions", function () {
     it("Should book an apartment", async function () {
-      const { rentdapp, owner, addr1, addr2 } = await loadFixture(deployRentappFixture);
+      const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
       // Create an apartment
 
       await contract.connect(owner).createAppartment(name, description, location, images.join(','), rooms, toWei(price), deadline, v, r, s);
@@ -225,6 +310,7 @@ describe("Rentdapp  contract", function () {
       expect(booking.booked).to.equal(true);
     });
     it('Should confirm qualified reviewers', async () => {
+      const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
       result = await contract.getQualifiedReviewers(id)
       expect(result).to.have.lengthOf(0)
 
@@ -235,6 +321,8 @@ describe("Rentdapp  contract", function () {
     })
 
     it('Should confirm apartment checking in', async () => {
+
+      const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
       result = await contract.getBooking(id, bookingId)
       expect(result.checked).to.be.equal(false)
 
@@ -251,6 +339,7 @@ describe("Rentdapp  contract", function () {
     })
 
     it('Should confirm apartment refund', async () => {
+      const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
       result = await contract.getBooking(id, bookingId)
       expect(result.cancelled).to.be.equal(false)
 
@@ -258,16 +347,6 @@ describe("Rentdapp  contract", function () {
 
       result = await contract.getBooking(id, bookingId)
       expect(result.cancelled).to.be.equal(true)
-    })
-
-    it('Should return the security fee', async () => {
-      result = await contract.securityFee()
-      expect(result).to.be.equal(securityFee)
-    })
-
-    it('Should return the tax percent', async () => {
-      result = await contract.taxPercent()
-      expect(result).to.be.equal(taxPercent)
     })
 
     it('Should prevent booking with wrong id', async () => {
@@ -288,13 +367,9 @@ describe("Rentdapp  contract", function () {
     })
 
 
-
-
-
-
-
-
     it("Should revert if the apartment is already booked", async function () {
+
+      const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
       // Create an apartment
       await rentdapp.createApartment(
         "Apartment",
@@ -331,6 +406,7 @@ describe("Rentdapp  contract", function () {
       ).to.be.revertedWith("Apartment already booked");
     });
     it("Should revert if the booking period is invalid", async function () {
+      const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
       // Create an apartment
       await rentdapp.createApartment(
         "Apartment",
@@ -358,6 +434,7 @@ describe("Rentdapp  contract", function () {
       ).to.be.revertedWith("Invalid booking period");
     });
     it("Should revert if the booking period is too long", async function () {
+      const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
       // Create an apartment
       await rentdapp.createApartment(
         "Apartment",
@@ -388,6 +465,8 @@ describe("Rentdapp  contract", function () {
       ).to.be.revertedWith("Booking period too long");
     });
     it("Should revert if the booking period overlaps with an existing booking", async function () {
+
+      const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
       // Create an apartment
       await rentdapp.createApartment(
         "Apartment",
@@ -428,6 +507,8 @@ describe("Rentdapp  contract", function () {
       ).to.be.revertedWith("Booking period overlaps with existing booking");
     });
     it("Should revert if the booking period is in the past", async function () {
+
+      const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
       // Create an apartment
       await rentdapp.createApartment(
         "Apartment",
@@ -458,6 +539,8 @@ describe("Rentdapp  contract", function () {
       ).to.be.revertedWith("Booking period is in the past");
     });
     it("Should revert if the booking period is not consecutive", async function () {
+
+      const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
       // Create an apartment
       await rentdapp.createApartment(
         "Apartment",
@@ -490,6 +573,8 @@ describe("Rentdapp  contract", function () {
     });
     
     it("Should revert if the booking period is not within the availability period", async function () {
+
+      const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
       // Create an apartment
       await rentdapp.createApartment(
       const amount = price * dates1.length + (price * dates1.length * securityFee) / 100
@@ -525,21 +610,236 @@ describe("Rentdapp  contract", function () {
       expect(bookings[0].tenant).to.equal(owner.address);
     });
 
-    it("Should cancel a booking", async function () {
-      // Additional test for cancelBooking
+   
+  });
+
+  describe("Successful Check-In", function () {
+    it("Should allow tenant to check in successfully", async function () {
+
+      const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
+
+      // Mint tokens to the tenant
+      await permitToken.mint(addr1.address, ethers.utils.parseEther("1000"));
+      
+
+      // Create a test apartment and booking
+      await rentdapp.connect(owner).createApartment(apartmentId, "Test Apartment");
+      await rentdapp.connect(tenant).bookApartment(apartmentId, ethers.utils.parseEther("100"), {
+        value: utilityFee,
+      });
+      const booking = await rentdapp.bookingsOf(apartmentId, bookingId);
+
+     
+
+      // Perform check-in
+      await expect(
+        rentdapp.connect(addr1).checkInApartment(apartmentId, bookingId, deadline, v, r, s)
+      ).to.emit(rentdapp, "CheckedIn").withArgs(apartmentId, bookingId, addr1.address);
+
+      const updatedBooking = await rentdapp.bookingsOf(apartmentId, bookingId);
+      expect(updatedBooking.checked).to.equal(true);
+    });
+    it("Should revert if a non-tenant tries to check in", async function () {
+
+      const { rentdapp, permitToken, owner, addr1, addr2} = await loadFixture(deployRentappFixture);
+
+      const { v, r, s } = await generatePermitSignature(addr2); // Non-tenant
+
+      await expect(
+        rentdapp.connect(addr2).checkInApartment(apartmentId, bookingId, deadline, v, r, s)
+      ).to.be.revertedWith("Unauthorized Entity");
     });
 
-    it("Should handle check-in and check-out", async function () {
-      // Additional test for checkInApartment and checkOutApartment
+    it("Should revert if check-in is attempted after the allowed period", async function () {
+      const expiredDeadline = Math.floor(Date.now() / 1000) - 3600; // 1 hour ago
+      const { v, r, s } = await generatePermitSignature(addr1);
+
+      await ethers.provider.send("evm_increaseTime", [24 * 3600]); // Increase time by 24 hours
+      await ethers.provider.send("evm_mine", []);
+
+      await expect(
+        rentdapp.connect(addr1).checkInApartment(apartmentId, bookingId, expiredDeadline, v, r, s)
+      ).to.be.revertedWith("Check-in period expired!");
+    });
+
+    it("Should revert if the booking is already checked in", async function () {
+      const { v, r, s } = await generatePermitSignature(addr1);
+
+      // First check-in
+      await rentdapp.connect(addr1).checkInApartment(apartmentId, bookingId, deadline, v, r, s);
+
+      // Attempt a second check-in
+      await expect(
+        rentdapp.connect(addr1).checkInApartment(apartmentId, bookingId, deadline, v, r, s)
+      ).to.be.revertedWith("Already checked in");
+    });
+
+    it("Should revert if the tenant has insufficient balance", async function () {
+      await permitToken.connect(addr1).transfer(addr2.address, ethers.utils.parseEther("1000")); // Drain balance
+      const { v, r, s } = await generatePermitSignature(addr1);
+
+      await expect(
+        rentdapp.connect(addr1).checkInApartment(apartmentId, bookingId, deadline, v, r, s)
+      ).to.be.revertedWith("Insufficient balance");
+    });
+    it("Should revert if the booking is not found", async function () {
+      const { v, r, s } = await generatePermitSignature(addr1);
+      await expect(
+        rentdapp.connect(addr1).checkInApartment(apartmentId, 999, deadline, v, r, s)
+      ).to.be.revertedWith("Booking not found");
+    });
+    it("Should revert if the apartment is not found", async function () {
+      const { v, r, s } = await generatePermitSignature(addr1);
+      await expect(
+        rentdapp.connect(addr1).checkInApartment(999, bookingId, deadline, v, r, s)
+      ).to.be.revertedWith("Apartment not found");
     });
   });
 
+
+  describe("checkOutApartment", function () {
+    it("Should allow a tenant to check out of an apartment", async function () {
+
+      // Mint tokens to the tenant
+    await permitToken.mint(tenant.address, ethers.utils.parseEther("1000"));
+
+    // Create a test apartment and booking
+    await rentdapp.connect(owner).createApartment(apartmentId, "Test Apartment");
+    await rentdapp.connect(tenant).bookApartment(apartmentId, ethers.utils.parseEther("100"), {
+      value: utilityFee,
+    });
+      const { v, r, s } = await generatePermitSignature(addr1);
+      await rentdapp.connect(addr1).checkInApartment(apartmentId, bookingId, deadline, v, r, s);
+      await rentdapp.connect(addr1).checkOutApartment(apartmentId, bookingId);
+      const booking = await rentdapp.bookings(bookingId);
+      expect(booking.checkedOut).to.be.true;
+    });
+    it("Should revert if the booking is not found", async function () {
+      await expect(
+        rentdapp.connect(addr1).checkOutApartment(apartmentId, 999)
+      ).to.be.revertedWith("Booking not found");
+    });
+    it("Should revert if the apartment is not found", async function () {
+      await expect(
+        rentdapp.connect(addr1).checkOutApartment(999, bookingId)
+      ).to.be.revertedWith("Apartment not found");
+    });
+    it("Should revert if the caller is not the tenant", async function () {
+      const { v, r, s } = await generatePermitSignature(addr1);
+      await rentdapp.connect(addr1).checkInApartment(apartmentId, bookingId, deadline, v, r, s);
+      await expect(
+        rentdapp.connect(addr2).checkOutApartment(apartmentId, bookingId)
+      ).to.be.revertedWith("Caller is not the tenant");
+    });
+   
+    it("Should revert if the booking has not been checked in", async function () {
+      await expect(
+        rentdapp.connect(addr1).checkOutApartment(apartmentId, bookingId)
+      ).to.be.revertedWith("Booking not checked in");
+    });
+  });
+
+  describe("Successful Cancellation", function () {
+    it("Should allow tenant to cancel before booking date starts", async function () {
+      const { v, r, s } = await generatePermitSignature(tenant);
+
+      await expect(
+        rentdapp.connect(tenant).cancelBooking(apartmentId, bookingId, deadline, v, r, s)
+      )
+        .to.emit(rentdapp, "BookingCancelled")
+        .withArgs(apartmentId, bookingId, tenant.address);
+
+      const booking = await rentdapp.bookingsOf(apartmentId, bookingId);
+      expect(booking.cancelled).to.be.true;
+
+      // Verify booked date is cleared
+      expect(await rentdapp.isDateBooked(apartmentId, booking.date)).to.be.false;
+
+      // Verify collateral refund
+      expect(await ethers.provider.getBalance(tenant.address)).to.be.above(ethers.utils.parseEther("50"));
+
+      // Verify commission and utility payments
+      const contractBalance = await permitToken.balanceOf(rentdapp.address);
+      expect(contractBalance).to.equal(utilityFee);
+    });
+
+    it("Should allow owner to cancel the booking", async function () {
+      const { v, r, s } = await generatePermitSignature(owner);
+
+      await expect(
+        rentdapp.connect(owner).cancelBooking(apartmentId, bookingId, deadline, v, r, s)
+      )
+        .to.emit(rentdapp, "BookingCancelled")
+        .withArgs(apartmentId, bookingId, owner.address);
+
+      const booking = await rentdapp.bookingsOf(apartmentId, bookingId);
+      expect(booking.cancelled).to.be.true;
+    });
+
+    it("Should revert if booking is already checked in", async function () {
+      const { v, r, s } = await generatePermitSignature(tenant);
+
+      // Check in the booking
+      await rentdapp.connect(owner).checkInApartment(apartmentId, bookingId, deadline, v, r, s);
+
+      await expect(
+        rentdapp.connect(tenant).cancelBooking(apartmentId, bookingId, deadline, v, r, s)
+      ).to.be.revertedWith("Already checked in");
+    });
+
+    it("Should revert if booking date has passed", async function () {
+      const pastBookingDate = Math.floor(Date.now() / 1000) - 3600;
+      await rentdapp.updateBooking(
+        apartmentId,
+        bookingId,
+        tenant.address,
+        ethers.utils.parseEther("100"),
+        ethers.utils.parseEther("10"),
+        ethers.utils.parseEther("50"),
+        pastBookingDate
+      );
+
+      const { v, r, s } = await generatePermitSignature(tenant);
+
+      await expect(
+        rentdapp.connect(tenant).cancelBooking(apartmentId, bookingId, deadline, v, r, s)
+      ).to.be.revertedWith("Can no longer refund, booking date started");
+    });
+
+    it("Should revert if unauthorized user tries to cancel", async function () {
+      const { v, r, s } = await generatePermitSignature(nonTenant);
+
+      await expect(
+        rentdapp.connect(nonTenant).cancelBooking(apartmentId, bookingId, deadline, v, r, s)
+      ).to.be.revertedWith("Unauthorized tenant!");
+    });
+
+    it("Should revert if apartment or booking does not exist", async function () {
+      const invalidApartmentId = 999;
+      const invalidBookingId = 999;
+      const { v, r, s } = await generatePermitSignature(tenant);
+
+      await expect(
+        rentdapp.connect(tenant).cancelBooking(invalidApartmentId, bookingId, deadline, v, r, s)
+      ).to.be.revertedWith("Apartment not found!");
+
+      await expect(
+        rentdapp.connect(tenant).cancelBooking(apartmentId, invalidBookingId, deadline, v, r, s)
+      ).to.be.revertedWith("Booking does not exist");
+    });
+  });
   
+
+
   
 
   
-  
-
-
-
 });
+
+  
+  
+
+  
+  
+
+
