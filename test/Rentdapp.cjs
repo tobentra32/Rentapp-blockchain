@@ -65,7 +65,7 @@ describe("Rentdapp  contract", function () {
     const permitToken = await PermitToken.deploy(name, symbol, maxTotalSupply, price);
     await permitToken.waitForDeployment();
 
-    console.log("PermitToken deployed to:", permitToken.getAddress());
+    console.log("PermitToken deployed to:", await permitToken.getAddress());
 
     // Get the Signers here.
     [owner, addr1, addr2] = await ethers.getSigners();
@@ -78,7 +78,7 @@ describe("Rentdapp  contract", function () {
     Rentdapp = await ethers.getContractFactory("Rentdapp");
 
     // Deploy the contract with arguments
-    rentdapp = await Rentdapp.deploy(permitToken.getAddress());
+    rentdapp = await Rentdapp.deploy(await permitToken.getAddress());
 
 
     await rentdapp.waitForDeployment();
@@ -88,8 +88,8 @@ describe("Rentdapp  contract", function () {
       const domain = {
         name: await permitToken.name(),
         version: "1",
-        chainId: await permitToken.provider.getNetwork().then((n) => n.chainId),
-        verifyingContract: permitToken.getAddress(),
+        chainId: 80002,
+        verifyingContract: await permitToken.getAddress(),
       };
   
       const types = {
@@ -102,7 +102,7 @@ describe("Rentdapp  contract", function () {
         ],
       };
   
-      const nonce = await permitToken.nonces(signer.address);
+      const nonce = await permitToken.nonces(signer.getAddress());
       const message = {
         owner: signer.address,
         spender: rentdapp.getAddress(),
@@ -126,7 +126,7 @@ describe("Rentdapp  contract", function () {
     const domain = {
       name: await permitToken.name(),
       version: "1",
-      chainId: await permitToken.provider.getNetwork().then((n) => n.chainId),
+      chainId: 80002,
       verifyingContract: permitToken.getAddress(),
     };
 
