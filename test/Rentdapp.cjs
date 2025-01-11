@@ -20,8 +20,8 @@ describe("Rentdapp  contract", function () {
 
   let Rentdapp, rentdapp;
   let token, owner, addr1, addr2;
-  const utilityFee = ethers.utils.parseEther("0.0016");
-  const initialAllowance = ethers.utils.parseEther("999999");
+  const utilityFee = ethers.parseEther("0.0016");
+  const initialAllowance = ethers.parseEther("999999");
   const id = 1
   const bookingId = 0
   const taxPercent = 7
@@ -30,6 +30,7 @@ describe("Rentdapp  contract", function () {
   const location = 'PHC'
   const newName = 'Update apartment'
   const description = 'Lorem Ipsum dalum'
+  const category = 'island'
   const images = [
     'https://a0.muscache.com/im/pictures/miso/Hosting-3524556/original/24e9b114-7db5-4fab-8994-bc16f263ad1d.jpeg?im_w=720',
     'https://a0.muscache.com/im/pictures/miso/Hosting-5264493/original/10d2c21f-84c2-46c5-b20b-b51d1c2c971a.jpeg?im_w=720',
@@ -52,8 +53,19 @@ describe("Rentdapp  contract", function () {
 
     // Deploy the token contract
     
-    permitToken = await ethers.deployContract("Permit Token", "PTKN");
+    const PermitToken = await ethers.getContractFactory("Token");
+
+    // Define constructor arguments
+    const name = "Permit Token";
+    const symbol = "PTKN";
+    const maxTotalSupply = ethers.parseUnits("1000000", 18); // 1 million tokens
+    const price = ethers.parseUnits("0.0001", 18); // 0.01 ETH per token
+
+    // Deploy the contract with arguments
+    const permitToken = await PermitToken.deploy(name, symbol, maxTotalSupply, price);
     await permitToken.waitForDeployment();
+
+    console.log("PermitToken deployed to:", permitToken.getAddress());
 
     // Get the Signers here.
     [owner, addr1, addr2] = await ethers.getSigners();
@@ -61,7 +73,13 @@ describe("Rentdapp  contract", function () {
     // To deploy our contract, we just have to call ethers.deployContract and await
     // its waitForDeployment() method, which happens once its transaction has been
     // mined.
-    rentdapp = await ethers.deployContract("Rentdapp");
+    
+
+    Rentdapp = await ethers.getContractFactory("Rentdapp");
+
+    // Deploy the contract with arguments
+    rentdapp = await Rentdapp.deploy(permitToken.getAddress());
+
 
     await rentdapp.waitForDeployment();
     
@@ -71,7 +89,7 @@ describe("Rentdapp  contract", function () {
         name: await permitToken.name(),
         version: "1",
         chainId: await permitToken.provider.getNetwork().then((n) => n.chainId),
-        verifyingContract: permitToken.address,
+        verifyingContract: permitToken.getAddress(),
       };
   
       const types = {
@@ -87,7 +105,7 @@ describe("Rentdapp  contract", function () {
       const nonce = await permitToken.nonces(signer.address);
       const message = {
         owner: signer.address,
-        spender: rentdapp.address,
+        spender: rentdapp.getAddress(),
         value: initialAllowance.toString(),
         nonce: nonce.toString(),
         deadline,
@@ -109,7 +127,7 @@ describe("Rentdapp  contract", function () {
       name: await permitToken.name(),
       version: "1",
       chainId: await permitToken.provider.getNetwork().then((n) => n.chainId),
-      verifyingContract: permitToken.address,
+      verifyingContract: permitToken.getAddress(),
     };
 
     const types = {
@@ -125,7 +143,7 @@ describe("Rentdapp  contract", function () {
     const nonce = await permitToken.nonces(signer.address);
     const message = {
       owner: signer.address,
-      spender: rentdapp.address,
+      spender: rentdapp.getAdrress(),
       value: initialAllowance.toString(),
       nonce: nonce.toString(),
       deadline,
@@ -177,7 +195,7 @@ describe("Rentdapp  contract", function () {
 
       const { v, r, s } = await generatePermitSignature(addr1);
 
-      const tx = await rentdapp.connect(addr1).createAppartment(name, description, location, images.join(','), rooms, toWei(price), deadline, v, r, s);
+      const tx = await rentdapp.connect(addr1).createAppartment(name, description, category, location, images.join(','), rooms, toWei(price), deadline, v, r, s);
 
       const receipt = await tx.wait();
       await expect(tx).to.emit(rentdapp, "ApartmentCreated").withArgs(

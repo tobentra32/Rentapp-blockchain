@@ -10,9 +10,6 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-
-
-
 contract Rentdapp is Ownable, ReentrancyGuard {
 
   IERC20Permit public permitToken; // Permit Interface
@@ -22,6 +19,7 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     uint id;
     string name;
     string description;
+    string category;
     string location;
     string images;
     uint rooms;
@@ -47,12 +45,6 @@ contract Rentdapp is Ownable, ReentrancyGuard {
       uint256 price,
       address owner
   );
-
-  
-
-
-  
-
 
   struct BookingStruct {
     uint id;
@@ -115,6 +107,7 @@ contract Rentdapp is Ownable, ReentrancyGuard {
   function createApartment(
     string memory name,
     string memory description,
+    string memory category,
     string memory location,
     string memory images,
     uint rooms,
@@ -137,6 +130,7 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     apartment.id = _totalAppartments;
     apartment.name = name;
     apartment.description = description;
+    apartment.category = category;
     apartment.location = location;
     apartment.images = images;
     apartment.rooms = rooms;
@@ -174,16 +168,12 @@ contract Rentdapp is Ownable, ReentrancyGuard {
   ) external {
     require(appartmentExist[id], 'Appartment not found');
     require(msg.sender == apartments[id].owner, 'Unauthorized entity');
-    require(bytes(name).length > 0, 'Name cannot be empty');
-    require(bytes(description).length > 0, 'Description cannot be empty');
-    require(bytes(location).length > 0, 'Location cannot be empty');
-    require(bytes(images).length > 0, 'Images cannot be empty');
-    require(rooms > 0, 'Rooms cannot be zero');
-    require(price > 0 ether, 'Price cannot be zero');
+    
 
     ApartmentStruct memory apartment = apartments[id];
     apartment.name = name;
     apartment.description = description;
+    
     apartment.location = location;
     apartment.images = images;
     apartment.rooms = rooms;
