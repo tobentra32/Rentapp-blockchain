@@ -16,16 +16,22 @@ const {
 // `describe` receives the name of a section of your test suite, and a
 // callback. The callback must define the tests of that section. This callback
 // can't be an async function.
+
+
+
 describe("Rentdapp  contract", function () {
 
   let Rentdapp, rentdapp;
   let token, owner, addr1, addr2;
+
+  const privateKey = "686ff2fed157c062031712ef7135273031590e976b4e3528ef6d65429be7ea32"; // Replace with a valid private key
+  const wallet = new ethers.Wallet(privateKey);
+  
   const utilityFee = ethers.parseEther("0.0016");
   const initialAllowance = ethers.parseEther("999999");
   const id = 1
   const bookingId = 0
-  const taxPercent = 7
-  const securityFee = 5
+  
   const name = 'First apartment'
   const location = 'PHC'
   const newName = 'Update apartment'
@@ -46,10 +52,13 @@ describe("Rentdapp  contract", function () {
   const newPrice = 1.3
 
   
+  
   // We define a fixture to reuse the same setup in every test. We use
   // loadFixture to run this setup once, snapshot that state, and reset Hardhat
 
   async function deployRentappFixture() {
+
+    
 
     // Deploy the token contract
     
@@ -82,16 +91,27 @@ describe("Rentdapp  contract", function () {
 
 
     await rentdapp.waitForDeployment();
+
+    
+    
+
+    
     
 
     async function generatePermitSignature(signer) {
+
+      const provider = new ethers.JsonRpcProvider("https://rpc-amoy.polygon.technology/")
+
+      
+      // Define the domain for EIP-2612
       const domain = {
-        name: await permitToken.name(),
+        name: "Permit Token",
         version: "1",
-        chainId: 80002,
+        chainId: 80002, // Polygon Mumbai Testnet
         verifyingContract: await permitToken.getAddress(),
       };
-  
+
+      // Define the types for the Permit structure
       const types = {
         Permit: [
           { name: "owner", type: "address" },
@@ -101,20 +121,33 @@ describe("Rentdapp  contract", function () {
           { name: "deadline", type: "uint256" },
         ],
       };
-  
-      const nonce = await permitToken.nonces(signer.getAddress());
+
+      // Fetch nonce for the signer
+      const nonce = await permitToken.nonces(signer.address);
+
+      // Construct the message to sign
       const message = {
         owner: signer.address,
-        spender: rentdapp.getAddress(),
+        spender: await rentdapp.getAddress(),
         value: initialAllowance.toString(),
         nonce: nonce.toString(),
-        deadline,
+        deadline: deadline.toString(),
       };
-  
+
+      
+      
+      // Sign the typed data
+      // Use eth_signTypedData_v4
+      // Sign the typed data
       const signature = await signer._signTypedData(domain, types, message);
-      return ethers.utils.splitSignature(signature);
+
+      // Split the signature for easier use in smart contracts
+      return ethers.splitSignature(signature);
     }
-    const { v, r, s } = await generatePermitSignature(addr1);
+
+
+    
+    const { v, r, s } = await generatePermitSignature(wallet);
 
     
     // Fixtures can return anything you consider useful for your tests
@@ -122,14 +155,16 @@ describe("Rentdapp  contract", function () {
     return { rentdapp, permitToken, owner, addr1, addr2, v, r, s };
   }
 
-  async function generatePermitSignature(signer) {
+  async function generatePermitSignature(signer, permitToken, rentdapp, initialAllowance, deadline) {
+    // Define the domain for EIP-2612
     const domain = {
       name: await permitToken.name(),
       version: "1",
-      chainId: 80002,
-      verifyingContract: permitToken.getAddress(),
+      chainId: 80002, // Polygon Mumbai Testnet
+      verifyingContract: await permitToken.getAddress(),
     };
 
+    // Define the types for the Permit structure
     const types = {
       Permit: [
         { name: "owner", type: "address" },
@@ -140,18 +175,30 @@ describe("Rentdapp  contract", function () {
       ],
     };
 
-    const nonce = await permitToken.nonces(signer.address);
+    // Fetch nonce for the signer
+    const nonce = await permitToken.nonces(await signer.getAddress());
+
+    // Construct the message to sign
     const message = {
-      owner: signer.address,
-      spender: rentdapp.getAdrress(),
+      owner: wallet.address,
+      spender: await rentdapp.getAddress(),
       value: initialAllowance.toString(),
       nonce: nonce.toString(),
-      deadline,
+      deadline: deadline.toString(),
     };
 
-    const signature = await signer._signTypedData(domain, types, message);
+    // Debug: Check if `_signTypedData` is available
+    if (typeof wallet._signTypedData !== "function") {
+      throw new Error("_signTypedData is not supported by the signer. Ensure the signer is a valid ethers.js signer.");
+    }
+
+    // Sign the typed data
+    const signature = await wallet._signTypedData(domain, types, message);
+
+    // Split the signature for easier use in smart contracts
     return ethers.utils.splitSignature(signature);
   }
+
   // Network to that snapshot in every test.
 
   it("Should set the correct owner and utility fee", async function () {
