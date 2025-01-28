@@ -1,8 +1,7 @@
 import { ethers } from 'ethers'
-import { store } from '@/store'
-import { globalActions } from '@/store/globalSlices'
-import address from '@/contracts/contractAddress.json'
-import dappBnbAbi from '@/artifacts/contracts/DappBnb.sol/DappBnb.json'
+import { store } from '../store'
+import { globalActions } from '../store/globalSlices'
+
 
 const toWei = (num) => ethers.parseEther(num.toString())
 const fromWei = (num) => ethers.formatEther(num)

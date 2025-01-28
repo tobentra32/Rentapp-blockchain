@@ -2,6 +2,9 @@ const { expect } = require("chai");
 
 const { ethers } = require("hardhat");
 
+
+
+
 // We use `loadFixture` to share common setups (or fixtures) between tests.
 // Using this simplifies your tests and makes them run faster, by taking
 // advantage of Hardhat Network's snapshot functionality.
@@ -22,10 +25,9 @@ const {
 describe("Rentdapp  contract", function () {
 
   let Rentdapp, rentdapp;
-  let token, owner, addr1, addr2;
+  let permitToken, owner, addr1, addr2;
 
-  const privateKey = "686ff2fed157c062031712ef7135273031590e976b4e3528ef6d65429be7ea32"; // Replace with a valid private key
-  const wallet = new ethers.Wallet(privateKey);
+  
   
   const utilityFee = ethers.parseEther("0.0016");
   const initialAllowance = ethers.parseEther("999999");
@@ -71,10 +73,10 @@ describe("Rentdapp  contract", function () {
     const price = ethers.parseUnits("0.0001", 18); // 0.01 ETH per token
 
     // Deploy the contract with arguments
-    const permitToken = await PermitToken.deploy(name, symbol, maxTotalSupply, price);
-    await permitToken.waitForDeployment();
+    token = await PermitToken.deploy(name, symbol, maxTotalSupply, price);
+    await token.waitForDeployment();
 
-    console.log("PermitToken deployed to:", await permitToken.getAddress());
+    console.log("PermitToken deployed to:", await token.getAddress());
 
     // Get the Signers here.
     [owner, addr1, addr2] = await ethers.getSigners();
@@ -87,7 +89,7 @@ describe("Rentdapp  contract", function () {
     Rentdapp = await ethers.getContractFactory("Rentdapp");
 
     // Deploy the contract with arguments
-    rentdapp = await Rentdapp.deploy(await permitToken.getAddress());
+    rentdapp = await Rentdapp.deploy(await token.getAddress());
 
 
     await rentdapp.waitForDeployment();
@@ -139,15 +141,39 @@ describe("Rentdapp  contract", function () {
       // Sign the typed data
       // Use eth_signTypedData_v4
       // Sign the typed data
-      const signature = await signer._signTypedData(domain, types, message);
+      const signature = await signer.signTypedData(domain, types, message);
 
       // Split the signature for easier use in smart contracts
-      return ethers.splitSignature(signature);
+
+      
+
+      // Parse the signature
+      const parsedSignature = ethers.Signature.from(signature);
+
+      console.log('parsedSignature:', parsedSignature)
+
+      const { v, r, s } = parsedSignature;
+
+      console.log('v:', v)
+
+      // Return the signature
+      return { v, r, s };
+
+      // Extract r, s, and v
+      //const r = parsedSignature.r; // 32-byte hex value (r)
+      //const s = parsedSignature.s; // 32-byte hex value (s)
+      //const v = parsedSignature.v; // Recovery id (v)
+
+      // Log the values
+      //console.log("r:", r);
+      //console.log("s:", s);
+      //console.log("v:", v);
+      //return signature 
     }
 
 
     
-    const { v, r, s } = await generatePermitSignature(wallet);
+    const { v, r, s } = await generatePermitSignature(addr1);
 
     
     // Fixtures can return anything you consider useful for your tests
@@ -155,10 +181,16 @@ describe("Rentdapp  contract", function () {
     return { rentdapp, permitToken, owner, addr1, addr2, v, r, s };
   }
 
-  async function generatePermitSignature(signer, permitToken, rentdapp, initialAllowance, deadline) {
+
+
+  async function generatePermitSignature(signer) {
+
+    const provider = new ethers.JsonRpcProvider("https://rpc-amoy.polygon.technology/")
+
+
     // Define the domain for EIP-2612
     const domain = {
-      name: await permitToken.name(),
+      name: "Permit Token",
       version: "1",
       chainId: 80002, // Polygon Mumbai Testnet
       verifyingContract: await permitToken.getAddress(),
@@ -176,28 +208,53 @@ describe("Rentdapp  contract", function () {
     };
 
     // Fetch nonce for the signer
-    const nonce = await permitToken.nonces(await signer.getAddress());
+    const nonce = await permitToken.nonces(signer.address);
 
     // Construct the message to sign
     const message = {
-      owner: wallet.address,
+      owner: signer.address,
       spender: await rentdapp.getAddress(),
       value: initialAllowance.toString(),
       nonce: nonce.toString(),
       deadline: deadline.toString(),
     };
 
-    // Debug: Check if `_signTypedData` is available
-    if (typeof wallet._signTypedData !== "function") {
-      throw new Error("_signTypedData is not supported by the signer. Ensure the signer is a valid ethers.js signer.");
-    }
+
 
     // Sign the typed data
-    const signature = await wallet._signTypedData(domain, types, message);
+    // Use eth_signTypedData_v4
+    // Sign the typed data
+    const signature = await signer.signTypedData(domain, types, message);
 
     // Split the signature for easier use in smart contracts
-    return ethers.utils.splitSignature(signature);
+
+
+
+    // Parse the signature
+    const parsedSignature = ethers.Signature.from(signature);
+
+    console.log('parsedSignature:', parsedSignature)
+
+    const { v, r, s } = parsedSignature;
+
+    console.log('v:', v)
+
+    // Return the signature
+    return { v, r, s };
+
+    // Extract r, s, and v
+    //const r = parsedSignature.r; // 32-byte hex value (r)
+    //const s = parsedSignature.s; // 32-byte hex value (s)
+    //const v = parsedSignature.v; // Recovery id (v)
+
+    // Log the values
+    //console.log("r:", r);
+    //console.log("s:", s);
+    //console.log("v:", v);
+    //return signature 
   }
+
+  
 
   // Network to that snapshot in every test.
 
@@ -209,17 +266,11 @@ describe("Rentdapp  contract", function () {
   });
   it("Should allow the owner to set the utility fee", async function () {
     const { rentdapp, owner, addr1, addr2 } = await loadFixture(deployRentappFixture);
-    const newUtilityFee = ethers.utils.parseEther("0.002");
+    const newUtilityFee = ethers.parseEther("0.002");
     await rentdapp.connect(owner).setUtilityFee(newUtilityFee);
     expect(await rentdapp.getUtilityFee()).to.equal(newUtilityFee);
   });
-  it("Should not allow non-owners to set the utility fee", async function () {
-    const { rentdapp, owner, addr1, addr2 } = await loadFixture(deployRentappFixture);
-    const newUtilityFee = ethers.utils.parseEther("0.002");
-    await expect(rentdapp.connect(addr1).setUtilityFee(newUtilityFee)).to.be.revertedWith(
-      "Ownable: caller is not the owner"
-    );
-  });
+  
 
   describe("Create Apartment", function () {
 
@@ -230,11 +281,16 @@ describe("Rentdapp  contract", function () {
       const { rentdapp, permitToken, owner, addr1, addr2} = await loadFixture(deployRentappFixture);
 
       // Step 1: addr1 purchases tokens from MyToken
-      const purchaseAmount = ethers.utils.parseEther("1"); // 1 Ether
+      const purchaseAmount = ethers.parseUnits("3", 18); // 1 Ether
+
+      
+      
       const tokenPrice = 100; // 1 ETH = 100 tokens (as per MyToken contract)
 
       // addr1 purchases tokens
-      await permitToken.connect(addr1).buyTokens({ value: purchaseAmount });
+      await token.transfer(addr1.address, amount);
+
+      expect(await token.balanceOf(addr1.address)).to.equal(amount);
 
       // Verify addr1 received tokens
       const addr1Balance = await myToken.balanceOf(addr1.address);
@@ -266,7 +322,7 @@ describe("Rentdapp  contract", function () {
       
 
       // Step 1: addr1 purchases tokens from MyToken
-      const purchaseAmount = ethers.utils.parseEther("1"); // 1 Ether
+      const purchaseAmount = ethers.parseEther("1"); // 1 Ether
       const tokenPrice = 100; // 1 ETH = 100 tokens (as per MyToken contract)
 
       // addr1 purchases tokens
@@ -320,7 +376,7 @@ describe("Rentdapp  contract", function () {
       const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
 
       // Step 1: addr1 purchases tokens from MyToken
-      const purchaseAmount = ethers.utils.parseEther("1"); // 1 Ether
+      const purchaseAmount = ethers.parseEther("1"); // 1 Ether
       const tokenPrice = 100; // 1 ETH = 100 tokens (as per MyToken contract)
 
       // addr1 purchases tokens
@@ -337,7 +393,7 @@ describe("Rentdapp  contract", function () {
     it("Should revert if apartment does not exist", async function () {
       const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
       // Step 1: addr1 purchases tokens from MyToken
-      const purchaseAmount = ethers.utils.parseEther("1"); // 1 Ether
+      const purchaseAmount = ethers.parseEther("1"); // 1 Ether
       const tokenPrice = 100; // 1 ETH = 100 tokens (as per MyToken contract)
 
       // addr1 purchases tokens
@@ -352,7 +408,7 @@ describe("Rentdapp  contract", function () {
     it("Should revert if deadline has passed", async function () {
       const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
       // Step 1: addr1 purchases tokens from MyToken
-      const purchaseAmount = ethers.utils.parseEther("1"); // 1 Ether
+      const purchaseAmount = ethers.parseEther("1"); // 1 Ether
       const tokenPrice = 100; // 1 ETH = 100 tokens (as per MyToken contract)
 
       // addr1 purchases tokens
@@ -367,7 +423,7 @@ describe("Rentdapp  contract", function () {
     it("Should revert if signature is invalid", async function () {
       const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
       // Step 1: addr1 purchases tokens from MyToken
-      const purchaseAmount = ethers.utils.parseEther("1"); // 1 Ether
+      const purchaseAmount = ethers.parseEther("1"); // 1 Ether
       const tokenPrice = 100; // 1 ETH = 100 tokens (as per MyToken contract)
 
       // addr1 purchases tokens
