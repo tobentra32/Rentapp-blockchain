@@ -1,74 +1,28 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Token is ERC20Permit, AccessControl {
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+contract Token is ERC20Permit, Ownable {
+    uint256 public constant TOKEN_PRICE = 0.01 ether; // Price per token in ETH
 
-    uint256 private _maxTotalSupply;     // Maximum supply of tokens
-    uint256 public tokenPrice;           // Price of 1 token in wei
-
-    constructor(
-        string memory name,
-        string memory symbol,
-        uint256 maxTotalSupply,
-        uint256 price
-    ) ERC20(name, symbol) ERC20Permit(name) {
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender); // Set deployer as admin
-        _grantRole(MINTER_ROLE, msg.sender);        // Set deployer as minter
-        _maxTotalSupply = maxTotalSupply;           // Set max supply
-        tokenPrice = price;                         // Set price per token
+    constructor() ERC20("Rentdapp Token", "RDT") ERC20Permit("MyPermitToken") Ownable(msg.sender) {
+        _mint(msg.sender, 1000000 * 10 ** decimals()); // Mint initial supply to owner
     }
 
-    /**
-     * @dev Allows users to buy tokens by sending ETH.
-     * Grants MINTER_ROLE temporarily to mint tokens and then revokes it.
-     * @param amount Amount of tokens to buy.
-     */
-    function buyTokens(uint256 amount) external payable {
-        require(
-            msg.value == amount * tokenPrice,
-            "Incorrect POL sent"
-        );
-        require(
-            totalSupply() + amount <= _maxTotalSupply,
-            "Mint exceeds max supply"
-        );
+    // Allow users to buy tokens by sending ETH
+    function buyTokens() external payable {
+        require(msg.value > 0, "No ETH sent");
 
-        // Grant MINTER_ROLE temporarily
-        _grantRole(MINTER_ROLE, msg.sender);
+        uint256 amountToBuy = (msg.value * 10 ** decimals()) / TOKEN_PRICE;
+        require(balanceOf(owner()) >= amountToBuy, "Not enough tokens available for sale");
 
-        // Mint tokens to buyer
-        _mint(msg.sender, amount);
-
-        // Revoke MINTER_ROLE immediately after minting
-        _revokeRole(MINTER_ROLE, msg.sender);
+        _transfer(owner(), msg.sender, amountToBuy);
     }
 
-    /**
-     * @dev Updates the token price.
-     * @param newPrice New price per token in wei.
-     */
-    function setTokenPrice(uint256 newPrice) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        tokenPrice = newPrice;
-    }
-    function getTokenPrice() public view returns (uint256) {
-        return tokenPrice;
-    }
-
-    /**
-     * @dev Allows the admin to withdraw collected ETH.
-     */
-    function withdraw() external onlyRole(DEFAULT_ADMIN_ROLE) {
-        payable(msg.sender).transfer(address(this).balance);
-    }
-
-    /**
-     * @dev Returns the max total supply of tokens.
-     */
-    function getMaxTotalSupply() public view returns (uint256) {
-        return _maxTotalSupply;
+    // Withdraw contract balance to the owner
+    function withdraw() external onlyOwner {
+        payable(owner()).transfer(address(this).balance);
     }
 }

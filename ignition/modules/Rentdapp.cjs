@@ -1,7 +1,7 @@
 const { buildModule } = require("@nomicfoundation/hardhat-ignition/modules");
 
 
-const tokenAddress = "0x7321e158b5578C87721203839c5355266c81cd24";
+const tokenAddress = "0xb48123DB6bAaa2F65fe86736D3A60c7326E03F8f";
 
 
 

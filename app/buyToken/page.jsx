@@ -9,6 +9,7 @@ const BuyToken = () => {
   const [amount, setAmount] = useState("");
   const [userAddress, setUserAddress] = useState("");
   const [loading, setLoading] = useState(false);
+  
 
   const handleBuyToken = async () => {
     if (!amount || isNaN(amount)) {
@@ -25,7 +26,7 @@ const BuyToken = () => {
       const signer = await provider.getSigner();
 
       // Replace with your contract address and ABI
-      const contractAddress = "YOUR_SMART_CONTRACT_ADDRESS";
+      const contractAddress = "0xb48123DB6bAaa2F65fe86736D3A60c7326E03F8f";
       const contractABI = [
         "function buyTokens() external payable"
       ];
@@ -46,6 +47,21 @@ const BuyToken = () => {
     }
   };
 
+  const fetchBalance = async () => {
+
+    if (account) {
+       // const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const _balance = await provider.getBalance(account);
+        setBalance(ethers.formatEther(_balance)); // Convert balance to ether
+      console.log("pol balance", balance);
+    }
+
+
+
+
+
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center">
       <Card className="w-full max-w-md shadow-2xl">
@@ -57,7 +73,7 @@ const BuyToken = () => {
         <CardContent className="p-6 space-y-4">
           <div>
             <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
-              Enter Amount (ETH):
+              Enter Amount (POL):
             </label>
             <Input
               id="amount"
@@ -69,20 +85,7 @@ const BuyToken = () => {
             />
           </div>
 
-          <div>
-            <label htmlFor="userAddress" className="block text-sm font-medium text-gray-700">
-              Your Wallet Address:
-            </label>
-            <Input
-              id="userAddress"
-              type="text"
-              value={userAddress}
-              onChange={(e) => setUserAddress(e.target.value)}
-              placeholder="Auto-fetched from wallet"
-              disabled
-              className="mt-1 bg-gray-200"
-            />
-          </div>
+          
 
           <Button
             onClick={handleBuyToken}

@@ -69,17 +69,30 @@ describe("Rentdapp  contract", function () {
     // Define constructor arguments
     const name = "Permit Token";
     const symbol = "PTKN";
-    const maxTotalSupply = ethers.parseUnits("1000000", 18); // 1 million tokens
+    const maxTotalSupply = ethers.parseEther("1000000"); // 1 million tokens
     const price = ethers.parseUnits("0.0001", 18); // 0.01 ETH per token
 
     // Deploy the contract with arguments
     token = await PermitToken.deploy(name, symbol, maxTotalSupply, price);
     await token.waitForDeployment();
+    
 
     console.log("PermitToken deployed to:", await token.getAddress());
 
     // Get the Signers here.
     [owner, addr1, addr2] = await ethers.getSigners();
+
+    console.log("addr1:", addr1.address);
+
+    const amount = ethers.parseEther("10");
+
+    await token.transfer(addr1.address, amount);
+
+    const tokenBal = await token.balanceOf(addr1.address)
+
+    console.log("owner balance:", tokenBal.toString())
+    // Transfer tokens to the owner
+    
 
     // To deploy our contract, we just have to call ethers.deployContract and await
     // its waitForDeployment() method, which happens once its transaction has been
@@ -93,6 +106,8 @@ describe("Rentdapp  contract", function () {
 
 
     await rentdapp.waitForDeployment();
+
+    console.log("Rentdapp deployed to:", await rentdapp.getAddress());
 
     
     
@@ -110,7 +125,7 @@ describe("Rentdapp  contract", function () {
         name: "Permit Token",
         version: "1",
         chainId: 80002, // Polygon Mumbai Testnet
-        verifyingContract: await permitToken.getAddress(),
+        verifyingContract: await token.getAddress(),
       };
 
       // Define the types for the Permit structure
@@ -125,7 +140,7 @@ describe("Rentdapp  contract", function () {
       };
 
       // Fetch nonce for the signer
-      const nonce = await permitToken.nonces(signer.address);
+      const nonce = await token.nonces(signer.address);
 
       // Construct the message to sign
       const message = {
@@ -178,7 +193,7 @@ describe("Rentdapp  contract", function () {
     
     // Fixtures can return anything you consider useful for your tests
     
-    return { rentdapp, permitToken, owner, addr1, addr2, v, r, s };
+    return { rentdapp, token, owner, addr1, addr2, v, r, s };
   }
 
 
@@ -208,7 +223,7 @@ describe("Rentdapp  contract", function () {
     };
 
     // Fetch nonce for the signer
-    const nonce = await permitToken.nonces(signer.address);
+    const nonce = await token.nonces(signer.address);
 
     // Construct the message to sign
     const message = {
@@ -260,7 +275,7 @@ describe("Rentdapp  contract", function () {
 
   it("Should set the correct owner and utility fee", async function () {
     // We use loadFixture to setup our environment, and then assert that things went well
-    const { rentdapp, permitToken, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
+    const { rentdapp, token, owner, addr1, addr2, v, r, s } = await loadFixture(deployRentappFixture);
     expect(await rentdapp.owner()).to.equal(owner.address);
     expect(await rentdapp.getUtilityFee()).to.equal(utilityFee);
   });
@@ -278,23 +293,39 @@ describe("Rentdapp  contract", function () {
 
     it('Should create an apartment successfully', async () => {
 
-      const { rentdapp, permitToken, owner, addr1, addr2} = await loadFixture(deployRentappFixture);
+      const { rentdapp, token, owner, addr1, addr2} = await loadFixture(deployRentappFixture);
 
       // Step 1: addr1 purchases tokens from MyToken
       const purchaseAmount = ethers.parseUnits("3", 18); // 1 Ether
 
       
+
+
+      
       
       const tokenPrice = 100; // 1 ETH = 100 tokens (as per MyToken contract)
+
+      const tokenBal = await token.balanceOf(owner.address)
 
       // addr1 purchases tokens
       await token.transfer(addr1.address, amount);
 
-      expect(await token.balanceOf(addr1.address)).to.equal(amount);
+      //expect(await token.balanceOf(addr1.address)).to.equal(amount);
 
       // Verify addr1 received tokens
-      const addr1Balance = await myToken.balanceOf(addr1.address);
-      expect(addr1Balance).to.equal(purchaseAmount.mul(tokenPrice));
+      const addr1Balance = await token.balanceOf(addr1.address);
+      expect(addr1Balance).to.equal(amount);
+      
+      console.log("addr1Balance:", addr1Balance)
+
+      
+      // Step 2: addr1 approves the Rentdapp to spend tokens on his behalf
+      //const approveTx = await token.connect(addr1).approve(rentdapp.address, amount);
+      //await approveTx.wait();
+
+      
+      // Step 3: addr1 creates an apartment
+      
 
       const { v, r, s } = await generatePermitSignature(addr1);
 

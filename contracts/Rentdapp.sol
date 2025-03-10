@@ -1,19 +1,50 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity >=0.7.0 <0.9.0;
+pragma solidity ^0.8.19;
 
 // Uncomment this line to use console.log
 // import "hardhat/console.sol";
 
-import '@openzeppelin/contracts/access/Ownable.sol';
+import "./MathLibrary.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract Rentdapp is Ownable, ReentrancyGuard {
+
+
+// Interface for Ownable
+interface IOwnable {
+    function owner() external view returns (address);
+}
+
+
+
+// Interface for ERC20 Permit
+interface IERC20Permit {
+    function permit(
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
+}
+
+// Interface for ERC20
+interface IERC20 {
+    function balanceOf(address account) external view returns (uint256);
+    function transfer(address recipient, uint256 amount) external returns (bool);
+    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+    function allowance(address owner, address spender) external view returns (uint256);
+}
+
+contract Rentdapp is ReentrancyGuard {
+
+  using MathLibrary for uint256;
 
   IERC20Permit public permitToken; // Permit Interface
   IERC20 public token; // ERC20 Interface
+  address public owner;
 
   struct ApartmentStruct {
     uint id;
@@ -82,13 +113,22 @@ contract Rentdapp is Ownable, ReentrancyGuard {
   mapping(uint => mapping(uint => bool)) isDateBooked;
   mapping(address => mapping(uint => bool)) hasBooked;
 
+  modifier onlyOwner() {
+      require(msg.sender == owner, "Not contract owner");
+      _;
+  }
+
+  
+
  
 
-  constructor(address _tokenAddress) Ownable(msg.sender) {
+  constructor(address _tokenAddress) {
     
     permitToken = IERC20Permit(_tokenAddress); // Permit token
 
     token = IERC20(_tokenAddress);
+
+    owner = msg.sender;
   }
 
  
@@ -300,7 +340,7 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     
 
     payToWithPermit(msg.sender, apartments[aid].owner, booking.price - booking.commision, deadline, v, r, s);
-    payToWithPermit(msg.sender, owner(), booking.commision, deadline, v, r, s);
+    payToWithPermit(msg.sender, owner, booking.commision, deadline, v, r, s);
     payUser(booking.tenant, collateral);
     payToWithPermit(msg.sender, address(this), utility, deadline, v, r, s);
   }
@@ -339,7 +379,7 @@ contract Rentdapp is Ownable, ReentrancyGuard {
       require(!booking.checked, "Already checked in");
       require(isDateBooked[aid][booking.date], 'Did not book on this date!');
 
-      if (msg.sender != owner()) {
+      if (msg.sender != owner ){
         require(msg.sender == booking.tenant, 'Unauthorized tenant!');
         require(booking.date > currentTime(), 'Can no longer refund, booking date started');
       }
@@ -367,7 +407,7 @@ contract Rentdapp is Ownable, ReentrancyGuard {
       
 
       payUser(apartments[aid].owner, booking.collateral);
-      payToWithPermit(msg.sender, owner(), booking.commision, deadline, v, r, s);
+      payToWithPermit(msg.sender, owner, booking.commision, deadline, v, r, s);
       payToWithPermit(msg.sender, address(this), utility, deadline, v, r, s);
 
       
