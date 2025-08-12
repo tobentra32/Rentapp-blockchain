@@ -25,6 +25,7 @@ module.exports = {
       enabled: true,
       runs: 200, // Lower runs (e.g., 50) can further reduce size
     },
+    viaIR: true,
   },
   networks: {
     polygonAmoy: {

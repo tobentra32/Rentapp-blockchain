@@ -1,75 +1,89 @@
 "use client"
 import { useState } from 'react'
 import { FaTimes } from 'react-icons/fa'
-
-
-
 import { useAppKitProvider, useAppKitAccount } from "@reown/appkit/react"
-
-
 import { toast } from 'react-toastify'
 import { useRouter } from 'next/navigation'
-
-
-
 import { createApartment } from '../services/blockchain'
 
 export default function Add() {
 
   const { address, caipAddress, isConnected } = useAppKitAccount();
-  const { walletProvider } = useAppKitProvider('eip155')
-
- 
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [location, setLocation] = useState('')
-  const [rooms, setRooms] = useState('')
-  const [images, setImages] = useState('')
-  const [price, setPrice] = useState('')
-  const [links, setLinks] = useState([])
-  const navigate = useRouter()
+  const { walletProvider } = useAppKitProvider('eip155');
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [location, setLocation] = useState('');
+  const [category, setCategory] = useState('');
+  const [rooms, setRooms] = useState('');
+  const [images, setImages] = useState('');
+  const [price, setPrice] = useState('');
+  const [links, setLinks] = useState([]);
+  const navigate = useRouter();
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!name || !location || !description || !rooms || links.length != 5 || !price) return
+    e.preventDefault();
+    if (!name || !location || !category || !description || !rooms || links.length !== 5 || !price) {
+      toast.error('Fill all fields and upload exactly 5 images');
+      return;
+    }
 
     const params = {
       name,
       description,
+      category,
       location,
       rooms,
-      images: links.slice(0, 5).join(','),
+      images: links.join(','), // pass to contract
       price,
-    }
+    };
 
     await toast.promise(
       new Promise(async (resolve, reject) => {
-        await createApartment(params)
-          .then(async () => {
-            navigate.push('/')
-            resolve()
-          })
-          .catch(() => reject())
+        try {
+          await createApartment(params);
+          navigate.push('/');
+          resolve();
+        } catch {
+          reject();
+        }
       }),
       {
         pending: 'Approve transaction...',
         success: 'Apartment added successfully 👌',
         error: 'Encountered error 🤯',
       }
-    )
-  }
+    );
+  };
 
-  const addImage = () => {
-    if (links.length != 5) {
-      setLinks((prevState) => [...prevState, images])
+  const handleImageUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    files.forEach((file) => formData.append('images', file));
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (data.urls) {
+        setLinks((prev) => [...prev, ...data.urls].slice(0, 5)); // max 5
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Image upload failed');
+    } finally {
+      setUploading(false);
     }
-    setImages('')
-  }
+  };
 
   const removeImage = (index) => {
-    links.splice(index, 1)
-    setLinks(() => [...links])
-  }
+    setLinks((prev) => prev.filter((_, i) => i !== index));
+  };
 
   return (
     <div className="h-screen flex justify-center mx-auto">
@@ -86,7 +100,7 @@ export default function Add() {
                 focus:outline-none focus:ring-0"
               type="text"
               name="name"
-              placeholder="Room Name "
+              placeholder="Room Name"
               onChange={(e) => setName(e.target.value)}
               value={name}
               required
@@ -114,40 +128,28 @@ export default function Add() {
               className="block flex-1 text-sm
                 text-slate-500 bg-transparent border-0
                 focus:outline-none focus:ring-0"
-              type="url"
+              type="file"
               name="images"
               placeholder="Images"
-              onChange={(e) => setImages(e.target.value)}
-              value={images}
+              multiple
+              accept="image/*"
+              onChange={handleImageUpload}
             />
 
-            {links.length != 5 && (
-              <button
-                onClick={addImage}
-                type="button"
-                className="p-2 bg-[#ff385c] text-white rounded-full text-sm"
-              >
-                Add image link
-              </button>
-            )}
+            {uploading && <p className="text-sm text-gray-500 mt-1">Uploading...</p>}
+
+            
           </div>
 
-          <div
-            className="flex flex-row justify-start items-center
-          rounded-xl mt-5 space-x-1 flex-wrap"
-          >
+          {/* Preview Uploaded Images */}
+          <div className="flex flex-wrap gap-2 mt-4">
             {links.map((link, i) => (
-              <div
-                key={i}
-                className="p-2 rounded-full text-gray-500 bg-gray-200 font-semibold
-                flex items-center w-max cursor-pointer active:bg-gray-300
-                transition duration-300 ease space-x-2 text-xs"
-              >
-                <span>{truncate(link, 4, 4, 11)}</span>
+              <div key={i} className="relative">
+                <img src={link} alt="" className="w-24 h-24 object-cover rounded" />
                 <button
-                  onClick={() => removeImage(i)}
                   type="button"
-                  className="bg-transparent hover focus:outline-none"
+                  onClick={() => removeImage(i)}
+                  className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
                 >
                   <FaTimes />
                 </button>
@@ -171,6 +173,30 @@ export default function Add() {
               required
             />
           </div>
+
+          <div className="flex flex-row justify-between items-center
+          border border-gray-300 p-2 rounded-xl mt-5">
+            <label htmlFor="category" className="block text-sm font-medium text-gray-700">
+              Apartment Category
+            </label>
+            <select
+              id="category"
+              name="category"
+              className="block w-full text-sm
+                text-slate-500 bg-transparent border-0
+                focus:outline-none focus:ring-0"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              required
+            >
+              <option value="">-- Select a Category --</option>
+              <option value="studio">Studio</option>
+              <option value="1-bedroom">1 Bedroom</option>
+              <option value="2-bedroom">2 Bedroom</option>
+              <option value="penthouse">Penthouse</option>
+            </select>
+          </div>
+
 
           <div
             className="flex flex-row justify-between items-center
