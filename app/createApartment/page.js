@@ -17,6 +17,7 @@ export default function Add() {
   const [rooms, setRooms] = useState('');
   const [uploading, setUploading] = useState(false);
   const [images, setImages] = useState('');
+  const [uploading, setUploading] = useState(false);
   const [price, setPrice] = useState('');
   const [links, setLinks] = useState([]);
   const navigate = useRouter();
@@ -75,6 +76,7 @@ export default function Add() {
       });
 
       const data = await res.json();
+      console.log("data:",data.urls);
       if (data.urls) {
         setLinks((prev) => [...prev, ...data.urls].slice(0, 5)); // max 5
       }
