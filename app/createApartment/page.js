@@ -15,10 +15,15 @@ export default function Add() {
   const [location, setLocation] = useState('');
   const [category, setCategory] = useState('');
   const [rooms, setRooms] = useState('');
+  const [uploading, setUploading] = useState(false);
   const [images, setImages] = useState('');
   const [price, setPrice] = useState('');
   const [links, setLinks] = useState([]);
   const navigate = useRouter();
+
+  const baseUrl = "https://res.cloudinary.com/dn1jishai/image/upload/v17233707463/rentapp-apartments/";
+
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -143,18 +148,22 @@ export default function Add() {
 
           {/* Preview Uploaded Images */}
           <div className="flex flex-wrap gap-2 mt-4">
-            {links.map((link, i) => (
-              <div key={i} className="relative">
-                <img src={link} alt="" className="w-24 h-24 object-cover rounded" />
-                <button
-                  type="button"
-                  onClick={() => removeImage(i)}
-                  className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
-                >
-                  <FaTimes />
-                </button>
-              </div>
-            ))}
+            {links.map((link, i) => {
+              const fileName = link.split("/").pop(); //extract last part (filename + extension)
+              console.log("file name:",fileName);
+              return (
+                <div key={i} className="relative">
+                  <img src={`${baseUrl}${fileName}`} alt="" className="w-24 h-24 object-cover rounded" />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(i)}
+                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
+                  >
+                    <FaTimes />
+                  </button>
+                </div>
+              );
+            })}
           </div>
 
           <div
