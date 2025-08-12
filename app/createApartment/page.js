@@ -17,7 +17,6 @@ export default function Add() {
   const [rooms, setRooms] = useState('');
   const [uploading, setUploading] = useState(false);
   const [images, setImages] = useState('');
-  const [uploading, setUploading] = useState(false);
   const [price, setPrice] = useState('');
   const [links, setLinks] = useState([]);
   const navigate = useRouter();
