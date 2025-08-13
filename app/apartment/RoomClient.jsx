@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { globalActions } from "./store/globalSlices";
-import { useAccount } from "wagmi";
+
 import {
   Title,
   ImageGrid,
@@ -12,7 +12,7 @@ import {
   Actions,
   Review,
   AddReview,
-} from "./components";
+} from "./components/index";
 
 export default function RoomClient({
   roomId,
