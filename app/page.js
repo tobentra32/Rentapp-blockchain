@@ -1,5 +1,5 @@
 import { getApartments } from './services/blockchain'
-import { Category, Collection } from './components/Category';
+import { Category, Collection } from './components';
 
 export default async function Home() {
   const apartmentsData = await getApartments();

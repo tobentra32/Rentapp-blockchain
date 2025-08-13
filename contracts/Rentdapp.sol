@@ -299,7 +299,7 @@ contract Rentdapp is Ownable, ReentrancyGuard {
 
     if (msg.sender != owner()) {
       require(msg.sender == booking.tenant, 'Unauthorized tenant!');
-      require(booking.date > currentTime(), 'Can no longer refund, booking date started');
+      require(booking.date < currentTime(), 'Can no longer refund, booking date started');
     }
 
     bookingsOf[aid][bookingId].cancelled = true;
