@@ -1,3 +1,4 @@
+"use client"
 import { useState } from 'react'
 import { toast } from 'react-toastify'
 import { FaTimes } from 'react-icons/fa'
