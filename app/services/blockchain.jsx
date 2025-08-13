@@ -1,6 +1,8 @@
 import { ethers } from 'ethers'
 import { store } from '../store'
 import { globalActions } from '../store/globalSlices'
+import address from '../contract_details/contractAddress.json'
+import rentdappApi from '../contract_details/contractAbi.json'
 
 
 const toWei = (num) => ethers.parseEther(num.toString())
