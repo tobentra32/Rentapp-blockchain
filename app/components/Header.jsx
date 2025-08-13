@@ -46,7 +46,7 @@ const ButtonGroup = () => {
         >
           Anywhere
         </button>
-        <Link href={'/room/add'}>
+        <Link href={'/createApartment'}>
           <button
             type="button"
             className="

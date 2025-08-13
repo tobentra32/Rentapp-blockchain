@@ -9,8 +9,9 @@ const { ethers } = require("hardhat");
 // Using this simplifies your tests and makes them run faster, by taking
 // advantage of Hardhat Network's snapshot functionality.
 const {
-  loadFixture,
+  loadFixture, time
 } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
+
 
 // `describe` is a Mocha function that allows you to organize your tests.
 // Having your tests organized makes debugging them easier. All Mocha
@@ -207,7 +208,7 @@ describe("Rentdapp  contract", function () {
   describe("Booking System", function () {
     
     let apartmentId;
-    let bookingDates;
+    //let bookingId;
     
     
 
@@ -299,14 +300,17 @@ describe("Rentdapp  contract", function () {
       //console.log("tenantBalance:",initialTenantBalance);
       const initialContractBalance = await ethers.provider.getBalance(rentdapp.owner());
       //console.log("contractBalance:",initialContractBalance);
+
+      const bookingId = 0;
       
 
-      
-
-      await rentdapp.connect(tenant1).checkInApartment(apartmentId, 0);
+      const booking = await rentdapp.getBooking(apartmentId, bookingId);
+      //console.log("booking:", booking);
+      await time.increaseTo(booking.date);
+      await rentdapp.connect(tenant1).checkInApartment(apartmentId, bookingId);
 
       // Verify booking is marked as checked
-      const booking = await rentdapp.getBooking(apartmentId, 0);
+      
       //console.log("booking:", booking);
       expect(booking.checked).to.be.true;
 
@@ -346,11 +350,16 @@ describe("Rentdapp  contract", function () {
       // Create a new booking to test refund
       apartmentId = 4;
       const refundDate = Math.floor(Date.now() / 1000) + 559200; // 3 days from now
-      await rentdapp.connect(tenant1).bookApartment(apartmentId, [refundDate], {
-        value: ethers.parseEther("0.011") // 1 ETH + 10% fee
-      });
+      //await rentdapp.connect(tenant1).bookApartment(apartmentId, [refundDate], {
+        //value: ethers.parseEther("0.011") // 1 ETH + 10% fee
+      //});
+      const bookings = await rentdapp.getBookings(apartmentId);
+      console.log("bookings:",bookings);
 
-      const bookingId = 2; // Third booking (0-indexed)
+      const bookingId = 1; 
+
+      const booking = await rentdapp.getBooking(apartmentId, bookingId);
+      console.log("booking",booking);
       
       const initialTenantBalance = await ethers.provider.getBalance(tenant1.address);
       const initialOwnerBalance = await ethers.provider.getBalance(owner.address);
@@ -358,7 +367,7 @@ describe("Rentdapp  contract", function () {
 
       await rentdapp.connect(tenant1).refundBooking(apartmentId, bookingId);
 
-      const booking = await rentdapp.getBooking(apartmentId, bookingId);
+      
       expect(booking.cancelled).to.be.true;
       expect(await rentdapp.isDateBooked(apartmentId, refundDate)).to.be.false;
 
@@ -412,6 +421,7 @@ describe("Rentdapp  contract", function () {
 
   describe("Review System", function () {
     let apartmentId;
+    let bookingId;
     
     it("Should add a review", async function () {
       await rentdapp.connect(landlord).createAppartment(
@@ -424,16 +434,23 @@ describe("Rentdapp  contract", function () {
         ethers.parseEther("0.001")
       );
       apartmentId = 4;
+      bookingId = 1; // Assuming this is the first booking
+
+      const booking = await rentdapp.getBooking(apartmentId, bookingId);
+      //console.log("bookings:",booking);
 
     
       // Book and check in to be able to review
-      const bookingDate = Math.floor(Date.now() / 1000);
-      await rentdapp.connect(tenant1).bookApartment(apartmentId, [bookingDate], {
-        value: ethers.parseEther("0.011")
-      });
-      const bookings = await rentdapp.getBookings(apartmentId);
-      console.log("bookings:",bookings);
-      await rentdapp.connect(tenant1).checkInApartment(apartmentId, 1);
+      //const bookingDate = Math.floor(Date.now() / 1000);
+      //await rentdapp.connect(tenant1).bookApartment(apartmentId, [bookingDate], {
+       // value: ethers.parseEther("0.011")
+      //});
+      await time.increaseTo(booking.date);
+      
+
+      await rentdapp.connect(tenant1).checkInApartment(apartmentId, bookingId);
+      
+      
       await rentdapp.connect(tenant1).addReview(apartmentId, "Great apartment!");
       
       const reviews = await rentdapp.getReviews(apartmentId);
@@ -456,8 +473,8 @@ describe("Rentdapp  contract", function () {
 
     it("Should get qualified reviewers", async function () {
       const reviewers = await rentdapp.getQualifiedReviewers(apartmentId);
-      expect(reviewers.length).to.equal(0);
-      //expect(reviewers[0]).to.equal(tenant1.address);
+      expect(reviewers.length).to.equal(2);
+      expect(reviewers[0]).to.equal(tenant1.address);
     });
   });
 
@@ -466,7 +483,7 @@ describe("Rentdapp  contract", function () {
 
     it("Should correctly handle ETH transfers", async function () {
       const rentapp_bal = await ethers.provider.getBalance(rentdapp.getAddress());
-      console.log("rentapp_bal:",rentapp_bal);
+      //console.log("rentapp_bal:",rentapp_bal);
       const testAmount = ethers.parseEther("1.0");
       const tx = await owner.sendTransaction({
         to: rentdapp.getAddress(),
