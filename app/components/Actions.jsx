@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { CiEdit } from 'react-icons/ci'
 import { MdDeleteOutline } from 'react-icons/md'
-import { deleteApartment } from './services/blockchain'
+import { deleteApartment } from '../services/blockchain'
 import { toast } from 'react-toastify'
 
 const Actions = ({ apartment }) => {
