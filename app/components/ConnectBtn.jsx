@@ -1,9 +1,11 @@
 'use client'
 
-export const ConnectBtn = () => {
+const ConnectBtn = () => {
   return (
     <div >
         <appkit-button />
     </div>
   )
 }
+
+export default ConnectBtn;
