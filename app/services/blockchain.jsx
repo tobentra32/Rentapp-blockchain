@@ -1,3 +1,4 @@
+"use client"
 import { ethers } from 'ethers'
 import { store } from '../store'
 import { globalActions } from '../store/globalSlices'

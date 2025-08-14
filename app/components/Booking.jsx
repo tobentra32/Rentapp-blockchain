@@ -1,3 +1,4 @@
+"use client"
 import Link from 'next/link'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { toast } from 'react-toastify'
