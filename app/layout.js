@@ -1,15 +1,23 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { GeistSans, GeistMono } from "geist/font"; // Updated font import
 import "./globals.css";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import ContextProvider from './context'
 
-const geistSans = Geist({
+// Font configuration changed in Next.js 14
+export const fontSans = GeistSans({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
+<<<<<<< HEAD
 
+=======
+export const fontMono = GeistMono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+>>>>>>> 2d9fcac02e227db4a1bf9f3fcce579f9f5aba2e8
 
 export const metadata = {
   title: "Create Next App",
@@ -18,14 +26,13 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <Header />
-        <ContextProvider>{children}</ContextProvider>
-        <Footer />
-
+    <html lang="en" className={`${fontSans.variable} ${fontMono.variable}`}>
+      <body className="antialiased">
+        <ContextProvider>
+          <Header />
+          {children}
+          <Footer />
+        </ContextProvider>
       </body>
     </html>
   );
