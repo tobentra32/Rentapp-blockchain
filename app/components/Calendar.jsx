@@ -5,7 +5,7 @@ import { toast } from 'react-toastify'
 import { useSelector } from 'react-redux'
 import DatePicker from 'react-datepicker'
 import { FaEthereum } from 'react-icons/fa'
-import { bookApartment } from '@/services/blockchain'
+import { bookApartment } from '../services/blockchain'
 
 const Calendar = ({ apartment, timestamps }) => {
   const [checkInDate, setCheckInDate] = useState(null)

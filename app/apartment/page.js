@@ -5,7 +5,7 @@ import {
   getBookedDates,
   getSecurityFee,
   getQualifiedReviewers,
-} from "@/services/blockchain";
+} from "../services/blockchain";
 
 export async function generateMetadata({ params }) {
   const apartment = await getApartment(params.roomId);

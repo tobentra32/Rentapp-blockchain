@@ -2,7 +2,7 @@ import React from 'react'
 import Link from 'next/link'
 import { ImageSlider } from '.'
 import { FaStar, FaEthereum } from 'react-icons/fa'
-import { formatDate } from '@/utils/helper'
+import { formatDate } from '../utils/helper'
 
 const Card = ({ appartment }) => {
   return (

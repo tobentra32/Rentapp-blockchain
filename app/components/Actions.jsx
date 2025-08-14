@@ -5,10 +5,11 @@ import { CiEdit } from 'react-icons/ci'
 import { MdDeleteOutline } from 'react-icons/md'
 import { deleteApartment } from '../services/blockchain'
 import { toast } from 'react-toastify'
+import { useAppKitAccount } from '@reown/appkit/react'
 
 const Actions = ({ apartment }) => {
   const navigate = useRouter()
-  const { address } = useAccount()
+  const { address } = useAppKitAccount();
 
   const handleDelete = async () => {
     if (confirm(`Are you sure you want to delete Apartment ${apartment?.id}?`)) {

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { globalActions } from "@/store/globalSlices";
+import { globalActions } from "../store/globalSlices";
 
 import {
   Title,
@@ -12,7 +12,7 @@ import {
   Actions,
   Review,
   AddReview,
-} from "@/components/index";
+} from "../components/index";
 
 export default function RoomClient({
   roomId,

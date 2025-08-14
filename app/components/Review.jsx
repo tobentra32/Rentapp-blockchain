@@ -1,5 +1,5 @@
 import Identicon from 'react-identicons'
-import { formatDate, truncate } from '@/utils/helper'
+import { formatDate, truncate } from '../utils/helper'
 
 const Review = ({ review }) => {
   return (

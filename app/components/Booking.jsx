@@ -1,12 +1,13 @@
 import Link from 'next/link'
-import { useAccount } from 'wagmi'
+import { useAppKitAccount } from '@reown/appkit/react'
 import { toast } from 'react-toastify'
 import Identicon from 'react-identicons'
-import { formatDate, truncate } from '@/utils/helper'
-import { checkInApartment, refundBooking } from '@/services/blockchain'
+import { formatDate, truncate } from '../utils/helper'
+import { checkInApartment, refundBooking } from '../services/blockchain'
+import { useAppKitAccount } from '@reown/appkit/react'
 
 const Booking = ({ booking }) => {
-  const { address } = useAccount()
+  const { address } = useAppKitAccount()
 
   const handleCheckIn = async () => {
     await toast.promise(
