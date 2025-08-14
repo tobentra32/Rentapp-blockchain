@@ -1,6 +1,6 @@
 import { FaAirbnb } from 'react-icons/fa'
 import Link from 'next/link'
-import { ConnectBtn } from './ConnectBtn'
+import  ConnectBtn  from './ConnectBtn'
 
 const Header = () => {
   return (
