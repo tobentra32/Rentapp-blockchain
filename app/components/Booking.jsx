@@ -4,7 +4,7 @@ import { toast } from 'react-toastify'
 import Identicon from 'react-identicons'
 import { formatDate, truncate } from '../utils/helper'
 import { checkInApartment, refundBooking } from '../services/blockchain'
-import { useAppKitAccount } from '@reown/appkit/react'
+
 
 const Booking = ({ booking }) => {
   const { address } = useAppKitAccount()
