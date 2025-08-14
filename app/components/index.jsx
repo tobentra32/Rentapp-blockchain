@@ -10,7 +10,6 @@ import Description from './Description'
 import ImageGrid from './ImageGrid'
 import Actions from './Actions'
 import Title from './Title'
-import Booking from './Booking'
 import Footer from './Footer'
 import AddReview from './AddReview'
 
@@ -27,7 +26,6 @@ export {
   ImageGrid,
   Actions,
   Title,
-  Booking,
   Footer,
   AddReview,
 }
