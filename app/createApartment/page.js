@@ -4,12 +4,15 @@ import { FaTimes } from 'react-icons/fa'
 import { useAppKitProvider, useAppKitAccount } from "@reown/appkit/react"
 import { toast } from 'react-toastify'
 import { useRouter } from 'next/navigation'
+import { BrowserProvider, Contract, parseEther } from "ethers";
+import contractAddress from "../contract_details/contractAddress";
+import contractAbi from '../contract_details/contractAbi';
 
-import contractAddress from '../contract_details/contractAddress.json'
-import rentdappApi from '../contract_details/contractAbi.json'
+
+
+
 
 export default function Add() {
-
   const { address, caipAddress, isConnected } = useAppKitAccount();
   const { walletProvider } = useAppKitProvider('eip155');
   const [name, setName] = useState('');
@@ -18,7 +21,7 @@ export default function Add() {
   const [category, setCategory] = useState('');
   const [rooms, setRooms] = useState('');
   const [uploading, setUploading] = useState(false);
-  const [images, setImages] = useState('');
+  const [images, setImages] = useState([]);
   const [price, setPrice] = useState('');
   const [links, setLinks] = useState([]);
   const router = useRouter();
@@ -41,11 +44,19 @@ export default function Add() {
       const ethersProvider = new BrowserProvider(walletProvider);
       const signer = await ethersProvider.getSigner();
 
-      const contract = new Contract(contractAddress.rentdappContract, rentdappApi.abi, signer);
+      const contract = new Contract(contractAddress, contractAbi, signer);
+      console.log("name",name);
+      console.log("name",location);
+      console.log("name",category);
+      console.log("name",description);
+      console.log("name",rooms);
+      console.log("name",images);
+      console.log("price",price);
 
 
       if (!name || !location || !category || !description || !rooms || images.length !== 5 || !price) {
         toast.error('Fill all fields and upload exactly 5 images');
+        console.log('Fill all fields and upload exactly 5 images');
         return;
       }
 
@@ -54,20 +65,23 @@ export default function Add() {
         description,
         category,
         location,
+        images: images.join(','), 
         rooms,
-        images: images.join(','), // pass to contract
         price,
       };
+      console.log("params:",params);
 
-      const tx = await contract.createApartment(
+      const tx = await contract.createAppartment(
         params.name,
         params.description,
         params.category,
         params.location,
-        params.rooms,
         params.images,
-        toWei(params.price)
+        params.rooms,
+        parseEther(params.price.toString())
       );
+
+      console.log("tx:",tx);
 
       await toast.promise(
         tx.wait(),
@@ -101,9 +115,21 @@ export default function Add() {
       const data = await res.json();
       console.log("data:",data.urls);
       if (data.urls) {
-        setLinks((prev) => [...prev, ...data.urls].slice(0, 5)); // max 5
-        const imageFile = links.map(link => link.split("/").pop()); //extract last part (filename + extension)
-        setImages((prev) => [...prev, ...imageFile].slice(0, 5)); // max 5
+        const newLinks = [...links, ...data.urls].slice(0, 5);
+        setLinks(newLinks);
+        
+        const imageFile = newLinks.map(link => link.split("/").pop());
+        console.log("imageFile:", imageFile);
+
+        //setLinks((prev) => [...prev, ...data.urls].slice(0, 5)); // max 5
+        //const imageFile = links.map(link => link.split("/").pop()); //extract last part (filename + extension)
+        //console.log('image:',imageFile);
+        
+        const newImages = [...images, ...imageFile].slice(0, 5);
+        setImages(newImages);
+        console.log("images:", images); // correct value
+
+        
         toast.success('Images uploaded successfully');
 
       }
@@ -118,9 +144,11 @@ export default function Add() {
   const removeImage = (index) => {
     setLinks((prev) => prev.filter((_, i) => i !== index));
   };
+  
+
 
   return (
-    <div className="h-screen flex justify-center mx-auto">
+    <div className="min-h-screen flex justify-center mx-auto pb-24">
       <div className="w-11/12 md:w-2/5 h-7/12 p-6">
         <form onSubmit={handleSubmit} className="flex flex-col">
           <div className="flex justify-center items-center">
@@ -179,7 +207,7 @@ export default function Add() {
           <div className="flex flex-wrap gap-2 mt-4">
             {links.map((link, i) => {
               const fileName = link.split("/").pop(); //extract last part (filename + extension)
-              console.log("file name:",fileName);
+              //console.log("file name:",fileName);
               return (
                 <div key={i} className="relative">
                   <img src={`${baseUrl}${fileName}`} alt="" className="w-24 h-24 object-cover rounded" />
@@ -271,20 +299,24 @@ export default function Add() {
           </div>
 
           <button
-            type="submit"
-            className={`flex flex-row justify-center items-center
+          type="submit"
+          onClick={(e) => {
+            if (!address) {
+              e.preventDefault(); // Stop form submission
+              toast.error('Please connect your wallet first');
+            }
+          }}
+          className="flex flex-row justify-center items-center
             w-full text-white text-md bg-[#ff385c]
             py-2 px-5 rounded-full drop-shadow-xl hover:bg-white
             border-transparent border
-            hover:hover:text-[#ff385c]
+            hover:text-[#ff385c]
             hover:border-[#ff385c]
-            mt-5 transition-all duration-500 ease-in-out ${
-              !address ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
-            disabled={!address}
-          >
-            Add Appartment
-          </button>
+            mt-5 transition-all duration-500 ease-in-out"
+        >
+          Add Apartment
+        </button>
+
         </form>
       </div>
     </div>

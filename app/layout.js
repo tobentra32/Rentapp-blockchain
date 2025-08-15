@@ -26,8 +26,11 @@ export default function RootLayout({ children }) {
       <body className="antialiased"> 
         <ContextProvider>
           <Header />
-          {children}
+          <main className="flex-grow pb-28">
+            {children}
+          </main>
           <Footer />
+          
         </ContextProvider>
       </body>
     </html>
