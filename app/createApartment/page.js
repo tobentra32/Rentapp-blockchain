@@ -5,8 +5,8 @@ import { useAppKitProvider, useAppKitAccount } from "@reown/appkit/react"
 import { toast } from 'react-toastify'
 import { useRouter } from 'next/navigation'
 import { BrowserProvider, Contract, parseEther }
-import contractAddress from '../contract_details/contractAddress.json'
-import rentdappApi from '../contract_details/contractAbi.json'
+import contractAddress from '../contract_details/contractAddress.json' assert { type: 'json' };
+import rentdappApi from '../contract_details/contractAbi.json' assert { type: 'json' };
 
 export default function Add() {
 
