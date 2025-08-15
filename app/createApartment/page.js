@@ -49,6 +49,7 @@ export default function Add() {
 
       if (!name || !location || !category || !description || !rooms || images.length !== 5 || !price) {
         toast.error('Fill all fields and upload exactly 5 images');
+        console.log('Fill all fields and upload exactly 5 images');
         return;
       }
 
@@ -61,6 +62,7 @@ export default function Add() {
         images: images.join(','), // pass to contract
         price,
       };
+      console.log("params:",params);
 
       const tx = await contract.createApartment(
         params.name,
@@ -72,8 +74,11 @@ export default function Add() {
         parseEther(params.price.toString())
       );
 
+      console.log("tx:",tx);
+
       await toast.promise(
         tx.wait(),
+        console.log("tx:",tx);
         {
           pending: 'Approve transaction...',
           success: 'Apartment added successfully 👌',
