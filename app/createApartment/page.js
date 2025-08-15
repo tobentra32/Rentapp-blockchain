@@ -4,7 +4,7 @@ import { FaTimes } from 'react-icons/fa'
 import { useAppKitProvider, useAppKitAccount } from "@reown/appkit/react"
 import { toast } from 'react-toastify'
 import { useRouter } from 'next/navigation'
-
+import { BrowserProvider, Contract, parseEther }
 import contractAddress from '../contract_details/contractAddress.json'
 import rentdappApi from '../contract_details/contractAbi.json'
 
@@ -66,7 +66,7 @@ export default function Add() {
         params.location,
         params.rooms,
         params.images,
-        toWei(params.price)
+        parseEther(params.price.toString())
       );
 
       await toast.promise(
@@ -118,12 +118,11 @@ export default function Add() {
   const removeImage = (index) => {
     setLinks((prev) => prev.filter((_, i) => i !== index));
   };
-  console.log("address:", address);
-  console.log("address:", address, "isConnected:", isConnected);
+  
 
 
   return (
-    <div className="h-screen flex justify-center mx-auto pb-24">
+    <div className="min-h-screen flex justify-center mx-auto pb-24">
       <div className="w-11/12 md:w-2/5 h-7/12 p-6">
         <form onSubmit={handleSubmit} className="flex flex-col">
           <div className="flex justify-center items-center">
