@@ -4,7 +4,9 @@ import { FaTimes } from 'react-icons/fa'
 import { useAppKitProvider, useAppKitAccount } from "@reown/appkit/react"
 import { toast } from 'react-toastify'
 import { useRouter } from 'next/navigation'
-import { createApartment } from '../services/blockchain'
+
+import contractAddress from '../contract_details/contractAddress.json'
+import rentdappApi from '../contract_details/contractAbi.json'
 
 export default function Add() {
 
@@ -19,7 +21,7 @@ export default function Add() {
   const [images, setImages] = useState('');
   const [price, setPrice] = useState('');
   const [links, setLinks] = useState([]);
-  const navigate = useRouter();
+  const router = useRouter();
 
   const baseUrl = "https://res.cloudinary.com/dn1jishai/image/upload/v17233707463/rentapp-apartments/";
 
@@ -27,37 +29,59 @@ export default function Add() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name || !location || !category || !description || !rooms || links.length !== 5 || !price) {
-      toast.error('Fill all fields and upload exactly 5 images');
-      return;
-    }
-
-    const params = {
-      name,
-      description,
-      category,
-      location,
-      rooms,
-      images: links.join(','), // pass to contract
-      price,
-    };
-
-    await toast.promise(
-      new Promise(async (resolve, reject) => {
-        try {
-          await createApartment(params);
-          navigate.push('/');
-          resolve();
-        } catch {
-          reject();
-        }
-      }),
-      {
-        pending: 'Approve transaction...',
-        success: 'Apartment added successfully 👌',
-        error: 'Encountered error 🤯',
+    try {
+      if (!isConnected) {
+        toast.error('Please connect your wallet first');
+        return;
       }
-    );
+      if (!walletProvider) {
+        toast.error('Wallet provider not found');
+        return;
+      }
+      const ethersProvider = new BrowserProvider(walletProvider);
+      const signer = await ethersProvider.getSigner();
+
+      const contract = new Contract(contractAddress.rentdappContract, rentdappApi.abi, signer);
+
+
+      if (!name || !location || !category || !description || !rooms || images.length !== 5 || !price) {
+        toast.error('Fill all fields and upload exactly 5 images');
+        return;
+      }
+
+      const params = {
+        name,
+        description,
+        category,
+        location,
+        rooms,
+        images: images.join(','), // pass to contract
+        price,
+      };
+
+      const tx = await contract.createApartment(
+        params.name,
+        params.description,
+        params.category,
+        params.location,
+        params.rooms,
+        params.images,
+        toWei(params.price)
+      );
+
+      await toast.promise(
+        tx.wait(),
+        {
+          pending: 'Approve transaction...',
+          success: 'Apartment added successfully 👌',
+          error: 'Encountered error 🤯',
+        }
+      );
+      router.push('/');
+    } catch (error) {
+      console.error('Error creating apartment:', error);
+      toast.error(error.message);
+    }
   };
 
   const handleImageUpload = async (e) => {
@@ -78,6 +102,10 @@ export default function Add() {
       console.log("data:",data.urls);
       if (data.urls) {
         setLinks((prev) => [...prev, ...data.urls].slice(0, 5)); // max 5
+        const imageFile = links.map(link => link.split("/").pop()); //extract last part (filename + extension)
+        setImages((prev) => [...prev, ...imageFile].slice(0, 5)); // max 5
+        toast.success('Images uploaded successfully');
+
       }
     } catch (error) {
       console.error(error);
