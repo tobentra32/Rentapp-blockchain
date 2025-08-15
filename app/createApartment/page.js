@@ -148,9 +148,9 @@ export default function Add() {
                 focus:outline-none focus:ring-0"
               type="number"
               step={0.01}
-              min={0.01}
+              min={0.003}
               name="price"
-              placeholder="Price (ETH)"
+              placeholder="Price (in POL)"
               onChange={(e) => setPrice(e.target.value)}
               value={price}
               required
