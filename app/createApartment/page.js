@@ -45,6 +45,13 @@ export default function Add() {
       const signer = await ethersProvider.getSigner();
 
       const contract = new Contract(contractAddress, contractAbi, signer);
+      console.log("name",name);
+      console.log("name",location);
+      console.log("name",category);
+      console.log("name",description);
+      console.log("name",rooms);
+      console.log("name",images);
+      console.log("price",price);
 
 
       if (!name || !location || !category || !description || !rooms || images.length !== 5 || !price) {
