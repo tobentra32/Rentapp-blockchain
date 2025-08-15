@@ -118,6 +118,7 @@ export default function Add() {
   const removeImage = (index) => {
     setLinks((prev) => prev.filter((_, i) => i !== index));
   };
+  console.log("address:", address);
 
   return (
     <div className="h-screen flex justify-center mx-auto">
