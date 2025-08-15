@@ -118,6 +118,7 @@ export default function Add() {
       if (data.urls) {
         setLinks((prev) => [...prev, ...data.urls].slice(0, 5)); // max 5
         const imageFile = links.map(link => link.split("/").pop()); //extract last part (filename + extension)
+        console.log('image:',imageFile);
         setImages((prev) => [...prev, ...imageFile].slice(0, 5)); // max 5
         toast.success('Images uploaded successfully');
 
@@ -196,7 +197,7 @@ export default function Add() {
           <div className="flex flex-wrap gap-2 mt-4">
             {links.map((link, i) => {
               const fileName = link.split("/").pop(); //extract last part (filename + extension)
-              console.log("file name:",fileName);
+              //console.log("file name:",fileName);
               return (
                 <div key={i} className="relative">
                   <img src={`${baseUrl}${fileName}`} alt="" className="w-24 h-24 object-cover rounded" />
