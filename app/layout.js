@@ -27,6 +27,7 @@ export default function RootLayout({ children }) {
         <ContextProvider>
           <Header />
           {children}
+          <Footer />
           
         </ContextProvider>
       </body>
