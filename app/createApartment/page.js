@@ -119,6 +119,8 @@ export default function Add() {
     setLinks((prev) => prev.filter((_, i) => i !== index));
   };
   console.log("address:", address);
+  console.log("address:", address, "isConnected:", isConnected);
+
 
   return (
     <div className="h-screen flex justify-center mx-auto">
