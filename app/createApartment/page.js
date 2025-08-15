@@ -272,20 +272,24 @@ export default function Add() {
           </div>
 
           <button
-            type="submit"
-            className={`flex flex-row justify-center items-center
+          type="submit"
+          onClick={(e) => {
+            if (!address) {
+              e.preventDefault(); // Stop form submission
+              toast.error('Please connect your wallet first');
+            }
+          }}
+          className="flex flex-row justify-center items-center
             w-full text-white text-md bg-[#ff385c]
             py-2 px-5 rounded-full drop-shadow-xl hover:bg-white
             border-transparent border
-            hover:hover:text-[#ff385c]
+            hover:text-[#ff385c]
             hover:border-[#ff385c]
-            mt-5 transition-all duration-500 ease-in-out ${
-              !address ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
-            disabled={!address}
-          >
-            Add Appartment
-          </button>
+            mt-5 transition-all duration-500 ease-in-out"
+        >
+          Add Apartment
+        </button>
+
         </form>
       </div>
     </div>
