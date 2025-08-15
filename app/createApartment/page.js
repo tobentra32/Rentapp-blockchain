@@ -71,7 +71,7 @@ export default function Add() {
       };
       console.log("params:",params);
 
-      const tx = await contract.createApartment(
+      const tx = await contract.createAppartment(
         params.name,
         params.description,
         params.category,
