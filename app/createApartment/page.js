@@ -5,8 +5,8 @@ import { useAppKitProvider, useAppKitAccount } from "@reown/appkit/react"
 import { toast } from 'react-toastify'
 import { useRouter } from 'next/navigation'
 import { BrowserProvider, Contract, parseEther }
-import contractAddress from "../contract_details/contractAddress.json";
-import rentdappApi from '../contract_details/contractAbi.json' assert { type: 'json' };
+import contractAddress from "../contract_details/contractAddress";
+import contractAbi from '../contract_details/contractAbi.js';
 
 
 
@@ -44,7 +44,7 @@ export default function Add() {
       const ethersProvider = new BrowserProvider(walletProvider);
       const signer = await ethersProvider.getSigner();
 
-      const contract = new Contract(contractAddress.rentdappContract, rentdappApi.abi, signer);
+      const contract = new Contract(contractAddress, contractAbi, signer);
 
 
       if (!name || !location || !category || !description || !rooms || images.length !== 5 || !price) {
