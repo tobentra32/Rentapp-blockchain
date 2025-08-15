@@ -21,7 +21,7 @@ export default function Add() {
   const [category, setCategory] = useState('');
   const [rooms, setRooms] = useState('');
   const [uploading, setUploading] = useState(false);
-  const [images, setImages] = useState('');
+  const [images, setImages] = useState([]);
   const [price, setPrice] = useState('');
   const [links, setLinks] = useState([]);
   const router = useRouter();
@@ -125,8 +125,11 @@ export default function Add() {
         //setLinks((prev) => [...prev, ...data.urls].slice(0, 5)); // max 5
         //const imageFile = links.map(link => link.split("/").pop()); //extract last part (filename + extension)
         //console.log('image:',imageFile);
-        setImages((prev) => [...prev, ...imageFile].slice(0, 5)); // max 5
-        console.log("images:", images);
+        
+        const newImages = [...images, ...imageFile].slice(0, 5);
+        setImages(newImages);
+        console.log("images:", images); // correct value
+
         
         toast.success('Images uploaded successfully');
 
