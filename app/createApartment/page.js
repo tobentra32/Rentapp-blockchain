@@ -78,7 +78,7 @@ export default function Add() {
 
       await toast.promise(
         tx.wait(),
-        console.log("tx:",tx);
+        console.log("tx:",tx),
         {
           pending: 'Approve transaction...',
           success: 'Apartment added successfully 👌',
