@@ -11,7 +11,7 @@ import ImageGrid from './ImageGrid'
 import Actions from './Actions'
 import Title from './Title'
 import Footer from './Footer'
-import AddReview from './AddReview'
+
 
 export {
   Header,
@@ -27,5 +27,4 @@ export {
   Actions,
   Title,
   Footer,
-  AddReview,
 }
