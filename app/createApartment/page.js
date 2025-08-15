@@ -76,8 +76,8 @@ export default function Add() {
         params.description,
         params.category,
         params.location,
-        params.rooms,
         params.images,
+        params.rooms,
         parseEther(params.price.toString())
       );
 
