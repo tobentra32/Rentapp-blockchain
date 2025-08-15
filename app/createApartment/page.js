@@ -4,9 +4,9 @@ import { FaTimes } from 'react-icons/fa'
 import { useAppKitProvider, useAppKitAccount } from "@reown/appkit/react"
 import { toast } from 'react-toastify'
 import { useRouter } from 'next/navigation'
-import { BrowserProvider, Contract, parseEther } from ethers;
+import { BrowserProvider, Contract, parseEther } from "ethers";
 import contractAddress from "../contract_details/contractAddress";
-import contractAbi from '../contract_details/contractAbi.js';
+import contractAbi from '../contract_details/contractAbi';
 
 
 
