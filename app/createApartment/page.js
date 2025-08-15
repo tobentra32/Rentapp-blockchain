@@ -123,7 +123,7 @@ export default function Add() {
 
 
   return (
-    <div className="h-screen flex justify-center mx-auto">
+    <div className="h-screen flex justify-center mx-auto pb-24">
       <div className="w-11/12 md:w-2/5 h-7/12 p-6">
         <form onSubmit={handleSubmit} className="flex flex-col">
           <div className="flex justify-center items-center">
