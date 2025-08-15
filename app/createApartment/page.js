@@ -65,8 +65,8 @@ export default function Add() {
         description,
         category,
         location,
+        images: images.join(','), 
         rooms,
-        images: images.join(','), // pass to contract
         price,
       };
       console.log("params:",params);
