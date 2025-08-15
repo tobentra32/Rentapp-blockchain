@@ -5,8 +5,7 @@ import { useAppKitProvider, useAppKitAccount } from "@reown/appkit/react"
 import { toast } from 'react-toastify'
 import { useRouter } from 'next/navigation'
 import { BrowserProvider, Contract, parseEther }
-const contractAddress = require("../contract_details/contractAddress.json");
-
+import contractAddress from "../contract_details/contractAddress.json";
 import rentdappApi from '../contract_details/contractAbi.json' assert { type: 'json' };
 
 
@@ -14,9 +13,6 @@ import rentdappApi from '../contract_details/contractAbi.json' assert { type: 'j
 
 
 export default function Add() {
-
-  
-
   const { address, caipAddress, isConnected } = useAppKitAccount();
   const { walletProvider } = useAppKitProvider('eip155');
   const [name, setName] = useState('');
