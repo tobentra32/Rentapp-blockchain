@@ -26,7 +26,7 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     string location;         
     string images;          
     string category;        
-}
+  }
 
   struct BookingStruct {
     uint id;
@@ -54,7 +54,7 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     uint256 indexed price,
     address indexed owner,
     uint256 id  
-);
+  );
   // Event to emit when an apartment is updated
   event ApartmentUpdated(
       string indexed name,
