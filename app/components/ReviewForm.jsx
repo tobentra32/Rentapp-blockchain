@@ -1,17 +1,24 @@
 'use client'
 import { useState } from 'react'
 import { toast } from 'react-toastify'
-//import { useAccount, useProvider } from 'wagmi'
+import { BrowserProvider, Contract, parseEther } from "ethers";
+import { useAppKitProvider, useAppKitAccount } from "@reown/appkit/react";
 import { ethers } from 'ethers'
-import apartmentContractABI from '@/contracts/ApartmentContract.json'
-import { useApartmentStore } from '@/hooks/useApartmentStore'
+import contractAddress from "../contract_details/contractAddress";
+import contractAbi from '../contract_details/contractAbi';
+import { useApartmentStore } from '../hooks/useApartmentStore'
 
-export default function ReviewForm({ apartmentId }) {
-  const [rating, setRating] = useState(0)
-  const [comment, setComment] = useState('')
+export default async function ReviewForm({ apartmentId }) {
+
+  const { address, caipAddress, isConnected } = useAppKitAccount();
+  const { walletProvider } = useAppKitProvider('eip155');
+  const ethersProvider = new BrowserProvider(walletProvider);
+  const signer = await ethersProvider.getSigner();
+
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { address } = useAccount()
-  const provider = useProvider()
+  
   const addReview = useApartmentStore(state => state.addReview)
 
 
@@ -34,12 +41,8 @@ export default function ReviewForm({ apartmentId }) {
     setIsSubmitting(true)
 
     try {
-      const signer = provider.getSigner()
-      const contract = new ethers.Contract(
-        process.env.NEXT_PUBLIC_CONTRACT_ADDRESS,
-        apartmentContractABI,
-        signer
-      )
+      
+      const contract = new Contract(contractAddress, contractAbi, signer);
 
       const tx = await contract.addReview(
         apartmentId,
@@ -61,7 +64,7 @@ export default function ReviewForm({ apartmentId }) {
       addReview({
       ...reviewData,
       apartmentId,
-      date: new Date().toISOString()
+      date: new Date().toISOString() })
     } catch (error) {
       console.error('Error submitting review:', error)
       toast.error(error.message)

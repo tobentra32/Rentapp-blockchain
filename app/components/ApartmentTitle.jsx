@@ -1,4 +1,4 @@
-export function ApartmentTitle({ name, location, rating }) {
+export default function ApartmentTitle({ name, location, rating }) {
   return (
     <div>
       <h1 className="text-3xl font-bold">{name}</h1>

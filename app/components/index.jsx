@@ -8,17 +8,17 @@ import Card from './Card'
 import BookingActions from './BookingActions'
 import Description from './Description'
 import ReviewForm from './ReviewForm'
-import BookingCalender from './BookingCalender'
+import BookingCalendar from './BookingCalender'
 import ReviewList from './ReviewList'
 import Collection from './Collection'
-import ApartmentTitle from '/ApartmentTitle'
+import ApartmentTitle from './ApartmentTitle'
 
 export {
   Header,
   ConnectBtn,
   Category,
   Footer,
-  BookingCalender,
+  BookingCalendar,
   Card,
   ImageGallery,
   Filters,

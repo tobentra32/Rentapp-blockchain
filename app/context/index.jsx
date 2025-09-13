@@ -7,7 +7,7 @@ import React from 'react'
 
 // Validate project ID
 
-const projectId = '62e79459767fff6c6ae30cd40f159bf1'
+const projectId = '411fbfc2969fb5d9abd75edaa394517d'
 
 if (!projectId) {
   throw new Error('Project ID is not defined')

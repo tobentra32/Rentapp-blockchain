@@ -5,7 +5,7 @@ import { DateRange } from 'react-date-range'
 import 'react-date-range/dist/styles.css'
 import 'react-date-range/dist/theme/default.css'
 
-export function BookingCalendar({ bookedDates, price }) {
+const BookingCalendar = ({ bookedDates, price }) => {
   const [dateRange, setDateRange] = useState([
     {
       startDate: new Date(),
@@ -50,3 +50,5 @@ export function BookingCalendar({ bookedDates, price }) {
     </div>
   )
 }
+
+export default BookingCalendar;

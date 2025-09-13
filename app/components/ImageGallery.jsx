@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-export function ImageGallery({ images }) {
+export default function ImageGallery({ images }) {
   const [selectedImage, setSelectedImage] = useState(images[0])
 
   return (

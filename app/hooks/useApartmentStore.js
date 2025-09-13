@@ -3,6 +3,7 @@ import { create } from 'zustand'
 export const useApartmentStore = create((set) => ({
   apartments: [],
   apartment: null,
+  bookedApartments: [],
   reviews: [],
   securityFee: 0,
   bookings: [],
@@ -11,6 +12,8 @@ export const useApartmentStore = create((set) => ({
   reviewModal: false,
   loading: false,
   error: null,
+
+
 
   // Apartment Actions
   addApartment: (newApartment) => set(state => ({
@@ -28,6 +31,8 @@ export const useApartmentStore = create((set) => ({
   cancelBooking: (bookingId) => set(state => ({
     bookings: state.bookings.filter(booking => booking.id !== bookingId)
   })),
+
+  setBookedApartments: (apartments) => set({ bookedApartments: apartments }),
 
   // Review Actions
   setReviews: (reviews) => set({ reviews }),

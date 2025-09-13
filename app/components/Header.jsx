@@ -28,24 +28,48 @@ const ButtonGroup = () => {
       border overflow-hidden rounded-full cursor-pointer"
     >
       <div className="inline-flex" role="group">
-        <button
-          className="
-            rounded-l-full
-            px-5
-            py-3
-            text-[#ff385c]
-            font-medium
-            text-sm
-            leading-tight
-            hover:bg-black hover:bg-opacity-5
-            focus:outline-none focus:ring-0
-            transition
-            duration-150
-            ease-in-out
-          "
-        >
-          Anywhere
-        </button>
+        <Link href={'/createApartment'}>
+          <button
+            type="button"
+            className="
+              px-5
+              py-3 
+              border-x border-gray-300
+              text-[#ff385c]
+              font-medium
+              text-sm
+              leading-tight
+              hover:bg-black hover:bg-opacity-5
+              focus:outline-none focus:ring-0
+              transition
+              duration-150
+              ease-in-out
+            "
+          >
+            Add Rooms
+          </button>
+        </Link>
+        <Link href={'/createApartment'}>
+          <button
+            type="button"
+            className="
+              px-5
+              py-3 
+              border-x border-gray-300
+              text-[#ff385c]
+              font-medium
+              text-sm
+              leading-tight
+              hover:bg-black hover:bg-opacity-5
+              focus:outline-none focus:ring-0
+              transition
+              duration-150
+              ease-in-out
+            "
+          >
+            Add Rooms
+          </button>
+        </Link>
         <Link href={'/createApartment'}>
           <button
             type="button"
@@ -68,24 +92,7 @@ const ButtonGroup = () => {
           </button>
         </Link>
 
-        <button
-          className="
-            rounded-r-full
-            px-5
-            py-3
-            text-[#ff385c]
-            font-medium
-            text-sm
-            leading-tight
-            hover:bg-black hover:bg-opacity-5
-            focus:outline-none focus:ring-0
-            transition
-            duration-150
-            ease-in-out
-          "
-        >
-          <p className="flex items-center">Any week</p>
-        </button>
+        
       </div>
     </div>
   )

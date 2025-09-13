@@ -1,6 +1,6 @@
 'use client'
 import { useRouter } from 'next/navigation'
-import { useApartmentStore } from '@/hooks/useApartmentStore'
+import { useApartmentStore } from '../hooks/useApartmentStore'
 
 export default function BookingActions({ price, apartmentId, securityFee }) {
   const router = useRouter()

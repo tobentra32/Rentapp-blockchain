@@ -1,4 +1,5 @@
 // components/Card.js
+"use client"
 import { useState } from 'react';
 import Link from 'next/link';
 import { FaStar, FaEthereum, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
@@ -18,14 +19,16 @@ export default function Card({ apartment }) {
     );
   };
 
+  const baseUrl = "https://res.cloudinary.com/dn1jishai/image/upload/v17233707463/rentapp-apartments/";
+
   return (
     <div className="shadow-lg rounded-xl overflow-hidden w-full sm:w-96">
-      <Link href={`/apartment/${apartment.id}`}>
+      <Link href={`/apartments/${apartment.id}`}>
         <div className="relative h-64 bg-gray-200">
           {apartment.images?.length > 0 && (
             <>
               <img
-                src={apartment.images[currentImageIndex]}
+                src={`${baseUrl}${apartment.images[currentImageIndex]}`}
                 alt={apartment.name}
                 className="w-full h-full object-cover"
               />
