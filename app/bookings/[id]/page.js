@@ -1,3 +1,4 @@
+"use client"
 import { useEffect } from 'react'
 import BookingCard from '@/components/BookingCard'
 import { useRouter } from 'next/router'

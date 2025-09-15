@@ -2,8 +2,9 @@
 import { useRouter } from 'next/navigation'
 import { useApartmentStore } from '../hooks/useApartmentStore'
 
-export default function BookingActions({ price, apartmentId, securityFee }) {
+export default function BookingActions({ price, apartmentId}) {
   const router = useRouter()
+  const securityFee = 100; //add correct fee 
   const setApartment = useApartmentStore(state => state.setApartment)
   const total = price + securityFee
 

@@ -59,6 +59,8 @@ export default function Add() {
         console.log('Fill all fields and upload exactly 5 images');
         return;
       }
+      const tx2 = await contract.getApartment(1);
+      console.log("apt1", tx2.images);
 
       const params = {
         name,
@@ -82,6 +84,7 @@ export default function Add() {
       );
 
       console.log("tx:",tx);
+      
 
       await toast.promise(
         tx.wait(),

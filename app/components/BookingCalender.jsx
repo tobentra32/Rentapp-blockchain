@@ -5,7 +5,7 @@ import { DateRange } from 'react-date-range'
 import 'react-date-range/dist/styles.css'
 import 'react-date-range/dist/theme/default.css'
 
-const BookingCalendar = ({ bookedDates, price }) => {
+const BookingCalendar = ({ price }) => {
   const [dateRange, setDateRange] = useState([
     {
       startDate: new Date(),
@@ -14,7 +14,7 @@ const BookingCalendar = ({ bookedDates, price }) => {
     }
   ])
 
-  const disabledDates = bookedDates.map(date => new Date(date))
+  //const disabledDates = bookedDates.map(date => new Date(date))
 
   const calculateTotal = (startDate, endDate, price) => {
     const diffTime = Math.abs(endDate.getTime() - startDate.getTime())
@@ -32,7 +32,7 @@ const BookingCalendar = ({ bookedDates, price }) => {
         onChange={item => setDateRange([item.selection])}
         moveRangeOnFirstSelection={false}
         ranges={dateRange}
-        disabledDates={disabledDates}
+        //disabledDates={disabledDates}
         minDate={new Date()}
       />
       

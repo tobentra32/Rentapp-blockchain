@@ -28,3 +28,24 @@ export async function getAllApartments(walletProvider) {
     deleted: apt.deleted,
   }));
 }
+export async function fetchApartment(walletProvider, id) {
+
+  const ethersProvider = new BrowserProvider(walletProvider);
+  const signer = await ethersProvider.getSigner();
+
+  const contract = new Contract(contractAddress, contractAbi, signer);
+
+  const apt = await contract.getApartment(id);
+  // Format to plain JS object
+  return {
+    name: apt.name,
+    location: apt.location,
+    description: apt.description,
+    images: apt.images.split(","),
+    price: apt.price.toString(), // BigNumber → string
+    
+  };
+
+
+
+}

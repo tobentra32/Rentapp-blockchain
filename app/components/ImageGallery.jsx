@@ -2,12 +2,14 @@
 import { useState } from 'react'
 export default function ImageGallery({ images }) {
   const [selectedImage, setSelectedImage] = useState(images[0])
+  const baseUrl = "https://res.cloudinary.com/dn1jishai/image/upload/v17233707463/rentapp-apartments/";
+        
 
   return (
     <div className="space-y-4">
       <div className="aspect-w-16 aspect-h-9 overflow-hidden rounded-lg">
         <img 
-          src={selectedImage} 
+          src={`${baseUrl}${selectedImage}`}
           alt="Main apartment view"
           className="w-full h-96 object-cover"
         />
@@ -20,7 +22,7 @@ export default function ImageGallery({ images }) {
             className={`rounded-md overflow-hidden ${selectedImage === image ? 'ring-2 ring-blue-500' : ''}`}
           >
             <img 
-              src={image} 
+              src={`${baseUrl}${image}`} 
               alt={`Apartment view ${index + 1}`}
               className="w-full h-20 object-cover"
             />
