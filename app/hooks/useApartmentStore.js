@@ -1,7 +1,9 @@
 import { create } from 'zustand'
 
-export const useApartmentStore = create((set) => ({
+export const useApartmentStore = create((set, get) => ({
   apartments: [],
+  appartments: {},
+  appartment: null,
   apartment: null,
   bookedApartments: [],
   reviews: [],
@@ -12,8 +14,26 @@ export const useApartmentStore = create((set) => ({
   reviewModal: false,
   loading: false,
   error: null,
+  selectedApartmentId: null,
 
 
+
+  // 🔹 Booking state
+  booking: {
+    startDate: null,
+    endDate: null,
+    price: 0,
+    total: 0,
+  },
+
+  storeApartment: (id, data) =>
+    set((state) => ({
+      appartments: {
+        ...state.appartments,
+        [id]: data,
+      },
+      appartment: data,
+    })),
 
   // Apartment Actions
   addApartment: (newApartment) => set(state => ({
@@ -22,9 +42,15 @@ export const useApartmentStore = create((set) => ({
   setApartment: (apartment) => set({ apartment }),
   setApartments: (apartments) => set({ apartments }),
 
+
+  getApartmentById: (id) => get().appartments[id],
+
+  
+  setSelectedApartmentId: (id) => set({ selectedApartmentId: id }),
+
   // Booking Actions
   setBookings: (bookings) => set({ bookings }),
-  
+
   addBooking: (newBooking) => set(state => ({
     bookings: [...state.bookings, newBooking]
   })),
@@ -62,5 +88,23 @@ export const useApartmentStore = create((set) => ({
       bookedDates: [...state.apartment.bookedDates, ...dates]
     } : null
   })),
-  
+
+  // 🔹 Set booking dates + auto total calculation
+  setBookingDates: (startDate, endDate, price) => {
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    const total = (diffDays + 1) * price
+    // build list of timestamps
+    const dates = []
+    const d = new Date(startDate)
+    while (d <= endDate) {
+      dates.push(Math.floor(d.getTime() / 1000)) // store as seconds
+      d.setDate(d.getDate() + 1)
+    }
+
+    set({
+      booking: { startDate, endDate, price, total, dates }
+    })
+  },
+
 }))

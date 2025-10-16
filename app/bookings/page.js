@@ -1,19 +1,43 @@
+"use client"
 import { useState, useEffect } from 'react'
-import ApartmentCard from '@/components/ApartmentCard'
-import { useStore } from '@/store/store'
-import { getAllBookedApartments } from '@/services/blockchain'
+import ApartmentCard from '../components/ApartmentCard'
+import { BrowserProvider, Contract, formatEther } from "ethers"
+import contractAddress from "../contract_details/contractAddress"
+import contractAbi from '../contract_details/contractAbi'
+import { useAppKitProvider, useAppKitAccount } from "@reown/appkit/react"
 import { toast } from 'react-toastify'
-import { useRouter } from 'next/router'
+import { fetchBookings } from "../lib/rentdapp"
+import { useRouter } from 'next/navigation'
+import { useApartmentStore } from "../store/useApartmentStore";
 import { ethers } from 'ethers'
 
 const BookedApartments = () => {
   const router = useRouter()
-  
-  // Zustand store state
-  const { bookedApartments, setBookedApartments } = useStore((state) => ({
-    bookedApartments: state.bookedApartments,
-    setBookedApartments: state.setBookedApartments
-  }))
+  const { address, isConnected } = useAppKitAccount()
+  const { walletProvider } = useAppKitProvider('eip155');
+  const [bookedApartments, setBookedApartments] = useState([]);
+  const { getApartmentById } = useApartmentStore();
+
+  const apartment = getApartmentById("1"); // e.g. Apartment with ID = 1
+  console.log("apartment:",apartment);
+
+  useEffect(() => {
+    async function loadBookings() {
+      try {
+        console.log("Loading bookings...");
+        
+        const data = await fetchBookings(walletProvider); // Fetch bookings for userId 1
+        console.log("DATA", data);
+        setBookedApartments(data);
+      } catch (error) {
+        console.error("❌ Error loading bookings:", error);
+      }
+    }
+    loadBookings();
+  }, []);
+
+
+
 
   // State for filters, sorting and pagination
   const [filters, setFilters] = useState({
@@ -26,13 +50,16 @@ const BookedApartments = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 6
   const [loading, setLoading] = useState(false)
-
   // Fetch ALL booked apartments
   const fetchAllBookedApartments = async () => {
     try {
       setLoading(true)
-      const apartments = await getAllBookedApartments()
-      setBookedApartments(apartments)
+      const ethersProvider = new BrowserProvider(walletProvider);
+      const signer = await ethersProvider.getSigner();
+      const contract = new Contract(contractAddress, contractAbi, signer);
+      const bookedApartments = await contract.getBookings(1);
+      console.log("bookedApartment:", bookedApartments)
+      
     } catch (error) {
       toast.error('Error fetching booked apartments')
       console.error('Error fetching booked apartments:', error)
@@ -41,12 +68,14 @@ const BookedApartments = () => {
     }
   }
 
+  
+
   // Apply filters
   const filteredApartments = bookedApartments.filter(apartment => {
     const meetsMinPrice = !filters.minPrice || 
-      Number(ethers.utils.formatEther(apartment.price)) >= Number(filters.minPrice)
+      Number(ethers.formatEther(apartment.price)) >= Number(filters.minPrice)
     const meetsMaxPrice = !filters.maxPrice || 
-      Number(ethers.utils.formatEther(apartment.price)) <= Number(filters.maxPrice)
+      Number(ethers.formatEther(apartment.price)) <= Number(filters.maxPrice)
     const meetsLocation = !filters.location || 
       apartment.location.toLowerCase().includes(filters.location.toLowerCase())
     const meetsBookedBy = !filters.bookedBy || 
@@ -56,19 +85,23 @@ const BookedApartments = () => {
 
   // Apply sorting
   const sortedApartments = [...filteredApartments].sort((a, b) => {
-    switch(sortOption) {
+    switch (sortOption) {
       case 'price-low':
-        return Number(ethers.utils.formatEther(a.price)) - Number(ethers.utils.formatEther(b.price))
+        return Number(ethers.formatEther(a.price)) - Number(ethers.formatEther(b.price));
+
       case 'price-high':
-        return Number(ethers.utils.formatEther(b.price)) - Number(ethers.utils.formatEther(a.price))
+        return Number(ethers.formatEther(b.price)) - Number(ethers.formatEther(a.price));
+
       case 'newest':
-        return b.id - a.id
+        return Number(b.id) - Number(a.id);  // ✅ convert BigInt to Number
+
       case 'oldest':
-        return a.id - b.id
+        return Number(a.id) - Number(b.id);  // ✅ convert BigInt to Number
+
       default:
-        return 0
+        return 0;
     }
-  })
+  });
 
   // Pagination logic
   const totalPages = Math.ceil(sortedApartments.length / itemsPerPage)
@@ -77,9 +110,7 @@ const BookedApartments = () => {
     currentPage * itemsPerPage
   )
 
-  useEffect(() => {
-    fetchAllBookedApartments()
-  }, [])
+  
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target
@@ -94,6 +125,7 @@ const BookedApartments = () => {
     setSortOption(e.target.value)
     setCurrentPage(1)
   }
+  console.log("bookedApartment:", bookedApartments);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

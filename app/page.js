@@ -4,6 +4,8 @@ import { useAppKitProvider, useAppKitAccount } from "@reown/appkit/react";
 
 import { getAllApartments } from "./lib/rentdapp";
 import { Category, Collection, Filters } from "./components/index";
+import { useApartmentStore } from './hooks/useApartmentStore'
+
 
 const ITEMS_PER_PAGE = 6;
 
@@ -21,19 +23,21 @@ export default function Home() {
     maxPrice: 10,
     category: "all",
   });
+  const apartments = useApartmentStore((s) => s.apartments)
+  const setApartments = useApartmentStore((s) => s.setApartments)
 
   useEffect(() => {
     async function loadData() {
       const data = await getAllApartments(walletProvider);
-      setAllApartments(data.filter((apt) => !apt.deleted));
+      setApartments(data.filter((apt) => !apt.deleted));
       setLoading(false);
     }
     loadData();
-  }, [walletProvider]);
+  }, [walletProvider, setApartments]);
 
   useEffect(() => {
     // Apply filters
-    let filtered = allApartments.filter((apt) => {
+    let filtered = apartments.filter((apt) => {
       return (
         (filters.location === "" ||
           apt.location
@@ -47,7 +51,7 @@ export default function Home() {
 
     setDisplayedApartments(filtered);
     setCurrentPage(1); // Reset to first page when filters change
-  }, [allApartments, filters]);
+  }, [apartments, filters]);
 
   // Pagination logic
   const totalPages = Math.ceil(displayedApartments.length / ITEMS_PER_PAGE);

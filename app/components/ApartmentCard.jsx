@@ -1,3 +1,5 @@
+import { ethers } from 'ethers'
+
 const ApartmentCard = ({
   apartment,
   onViewDetails,
@@ -24,7 +26,7 @@ const ApartmentCard = ({
             {apartment.name}
           </h3>
           <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-            {ethers.utils.formatEther(apartment.price)} ETH/night
+            {apartment.price} ETH/night
           </span>
         </div>
 

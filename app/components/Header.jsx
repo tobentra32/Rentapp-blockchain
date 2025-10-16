@@ -46,7 +46,7 @@ const ButtonGroup = () => {
               ease-in-out
             "
           >
-            Add Rooms
+            My Apartments
           </button>
         </Link>
         <Link href={'/createApartment'}>
@@ -67,10 +67,10 @@ const ButtonGroup = () => {
               ease-in-out
             "
           >
-            Add Rooms
+            Add Apartment
           </button>
         </Link>
-        <Link href={'/createApartment'}>
+        <Link href={'/bookings'}>
           <button
             type="button"
             className="
@@ -88,7 +88,7 @@ const ButtonGroup = () => {
               ease-in-out
             "
           >
-            Add Rooms
+            Bookings
           </button>
         </Link>
 

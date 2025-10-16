@@ -46,9 +46,11 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     address owner;
   }
  
-  uint public constant securityFee = 10; // 10%
-  uint public constant taxPercent = 5;   // 5%
+  uint256 public constant securityFee = 0.001 ether; // 0.001 ether
 
+    
+
+  uint public constant taxPercent = 0.0005 ether;
   event ApartmentCreated(
     string indexed name,
     uint256 indexed price,
@@ -346,7 +348,6 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     return bookingsOf[aid][bookingId];
   }
 
-
   function payTo(address to, uint256 amount) internal {
     (bool success, ) = payable(to).call{ value: amount }('');
     require(success);
@@ -380,9 +381,11 @@ contract Rentdapp is Ownable, ReentrancyGuard {
     return (block.timestamp * 1000) + 1000;
   }
 
-  receive() external payable {}
+  function getFee() external pure returns (uint256) {
+    return securityFee; // returns 1000000000000000
+  }
 
- 
+  receive() external payable {}
 
 
 

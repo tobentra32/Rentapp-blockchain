@@ -10,10 +10,12 @@ import {
   BookingActions,
   ReviewList,
 } from "../../components/index";
-import { BrowserProvider, Contract } from "ethers";
+import { BrowserProvider, Contract, formatEther } from "ethers";
 import { useAppKitProvider } from "@reown/appkit/react";
+import { useApartmentStore } from "../../hooks/useApartmentStore"; // ✅ Import store
 import ApartmentInitializer from "./ApartmentInitializer";
-import { useParams } from "next/navigation"
+
+import { useParams, useRouter } from "next/navigation"
 
 // TODO: import your contract details
 import contractAddress from "../../contract_details/contractAddress";
@@ -22,9 +24,12 @@ import contractAbi from "../../contract_details/contractAbi";
 export default function ApartmentPage({ params }) {
   const { walletProvider } = useAppKitProvider("eip155");
   const { id } = useParams()  // <-- get dynamic route param safely
+  const router = useRouter()                      
 
   const [apartment, setApartment] = useState(null);
   const [loading, setLoading] = useState(true);
+  // ✅ Zustand actions and selectors
+  const { storeApartment, getApartmentById } = useApartmentStore();
 
   useEffect(() => {
     async function loadData() {
@@ -51,9 +56,14 @@ export default function ApartmentPage({ params }) {
           //rating: Number(data.rating),
           images: data.images || [],
           description: data.description,
-          price: Number(data.price),
+          price: formatEther(data.price),
           //bookedDates: timestamps || [],
         };
+
+        // ✅ Store in Zustand
+        storeApartment(id, apt);
+
+        
 
         setApartment(apt);
       } catch (err) {
@@ -65,9 +75,13 @@ export default function ApartmentPage({ params }) {
 
 
     loadData();
-  }, [walletProvider, id]);
+  }, [walletProvider, id, storeApartment]);
 
   console.log("apt:",apartment);
+
+  const handleViewBooking = () => {
+    router.push(`/bookings/${id}`) // navigate to booking page
+  }
 
   if (loading) {
     return <div className="p-8 text-center">Loading apartment...</div>;
@@ -101,7 +115,14 @@ export default function ApartmentPage({ params }) {
 
         <div className="lg:col-span-1">
           <BookingActions price={apartment.price} apartmentId={apartment.id} />
+          <button onClick={() => handleViewBooking()}
+            
+            className="w-full rounded my-20 bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+          >
+            View booking
+          </button>
         </div>
+
       </div>
 
       <ReviewList apartmentId={apartment.id} />
