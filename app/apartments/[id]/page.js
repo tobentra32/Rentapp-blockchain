@@ -30,6 +30,7 @@ export default function ApartmentPage({ params }) {
   const [loading, setLoading] = useState(true);
   // ✅ Zustand actions and selectors
   const { storeApartment, getApartmentById } = useApartmentStore();
+  console.log("id:",id);
 
   useEffect(() => {
     async function loadData() {

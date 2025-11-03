@@ -1,7 +1,8 @@
 import { ethers } from 'ethers'
-import { formatDate } from '../utils'
+import { formatDate } from '../lib/utils'
 
 const BookingCard = ({ booking, onViewDetails }) => {
+  console.log('booking:', booking)
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
       <div className="p-6">
@@ -21,7 +22,7 @@ const BookingCard = ({ booking, onViewDetails }) => {
         <div className="mt-4 space-y-2 text-sm text-gray-600">
           <div className="flex justify-between">
             <span>Apartment:</span>
-            <span className="font-medium">#{booking.apartmentId.toString().slice(0, 8)}...</span>
+            <span className="font-medium">#{booking.id.toString().slice(0, 8)}...</span>
           </div>
           <div className="flex justify-between">
             <span>Check-in:</span>
@@ -34,7 +35,7 @@ const BookingCard = ({ booking, onViewDetails }) => {
           <div className="flex justify-between">
             <span>Total Paid:</span>
             <span className="font-medium">
-              {ethers.utils.formatEther(booking.totalPrice)} ETH
+              {(booking.total)} ETH
             </span>
           </div>
         </div>

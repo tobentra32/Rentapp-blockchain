@@ -73,7 +73,7 @@ async function switchToPolygonAmoy() {
 }
 
 
-export async function fetchBookings(walletProvider) {
+export async function fetchBookings(walletProvider, id) {
   if (!window.ethereum) {
     throw new Error("No wallet found. Please connect MetaMask or Trust Wallet.");
   }
@@ -84,14 +84,14 @@ export async function fetchBookings(walletProvider) {
   const ethersProvider = new BrowserProvider(window.ethereum);
   const signer = await ethersProvider.getSigner();
   const contract = new Contract(contractAddress, contractAbi, signer);
-  const bookings = await contract.getBookings(1);
+  const bookings = await contract.getBookings(id);
   console.log("BOOKING:",bookings)
   return bookings.map((booking) => ({
     id: booking.id.toString(),
-    //apartmentId: booking.apartmentId.toString(),
+    apartmentId: booking.aid.toString(),
     //userId: booking.userId.toString(),
-    startDate: new Date(Number(booking.startDate) * 1000),
-    endDate: new Date(Number(booking.endDate) * 1000),
+    startDate: new Date(Number(booking.date) * 1000),
+    endDate: new Date(Number(booking.date) * 1000),
     price: parseFloat(ethers.formatEther(booking.price)),
     timestamp: new Date(Number(booking.timestamp) * 1000),
   }));
@@ -120,4 +120,87 @@ export async function fetchApartment(walletProvider, id) {
 
 
 
+}
+
+export async function checkIn(aid, bookingId, walletProvider) {
+  const ethersProvider = new BrowserProvider(walletProvider);
+  const signer = await ethersProvider.getSigner();
+  const contract = new Contract(contractAddress, contractAbi, signer);
+
+  const tx = await contract.checkIn(aid, bookingId);
+  await tx.wait();
+}
+
+export async function checkOut(aid, bookingId, walletProvider) {
+  const ethersProvider = new BrowserProvider(walletProvider);
+  const signer = await ethersProvider.getSigner();
+  const contract = new Contract(contractAddress, contractAbi, signer);
+
+  const tx = await contract.checkOutApartment(aid, bookingId);
+  await tx.wait();
+  
+}
+
+export async function refund(aid,bookingId, walletProvider) {
+  const ethersProvider = new BrowserProvider(walletProvider);
+  const signer = await ethersProvider.getSigner();
+  const contract = new Contract(contractAddress, contractAbi, signer);
+  const tx = await contract.refundBooking(aid,bookingId);
+  await tx.wait();
+}
+export async function bookApartment(apartmentId, startDate, endDate, price, walletProvider) {
+  const ethersProvider = new BrowserProvider(walletProvider);
+  const signer = await ethersProvider.getSigner();
+  const contract = new Contract(contractAddress, contractAbi, signer);
+  const tx = await contract.bookApartment(
+    apartmentId,
+    Math.floor(new Date(startDate).getTime() / 1000),
+    Math.floor(new Date(endDate).getTime() / 1000),
+    { value: parseEther(price.toString()) }
+  );
+  await tx.wait();
+}
+
+export async function addReview(apartmentId, rating, comment, walletProvider) {
+  const ethersProvider = new BrowserProvider(walletProvider);
+  const signer = await ethersProvider.getSigner();
+  const contract = new Contract(contractAddress, contractAbi, signer);
+  const tx = await contract.addReview(apartmentId, rating, comment);
+  await tx.wait();
+}
+export async function getReviews(walletProvider, apartmentId) {
+  const ethersProvider = new BrowserProvider(walletProvider);
+  const signer = await ethersProvider.getSigner();
+  const contract = new Contract(contractAddress, contractAbi, signer);
+  const reviews = await contract.getReviews(apartmentId);
+  return reviews.map((review) => ({
+    reviewer: review.reviewer,
+    rating: review.rating.toNumber(),
+    comment: review.comment,
+    date: new Date(Number(review.date) * 1000),
+  }));
+}
+
+export async function deleteApt(params) {
+
+  const ethersProvider = new BrowserProvider(walletProvider);
+  const signer = await ethersProvider.getSigner();
+  const contract = new Contract(contractAddress, contractAbi, signer);
+  const tx = await contract.deleteAppartment(apartmentId);  
+  await tx.wait();
+}
+export async function updateApt(params) {
+
+  const ethersProvider = new BrowserProvider(walletProvider);
+  const signer = await ethersProvider.getSigner();
+  const contract = new Contract(contractAddress, contractAbi, signer);
+  const tx = await contract.updateAppartment(name,
+        description,
+        category,
+        location,
+        images, 
+        rooms,
+        price,);
+         
+  await tx.wait();
 }

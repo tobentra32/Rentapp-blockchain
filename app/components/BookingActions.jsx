@@ -11,17 +11,26 @@ export default function BookingActions({ price, apartmentId }) {
   const { address, caipAddress, isConnected } = useAppKitAccount();
   const { walletProvider } = useAppKitProvider('eip155');
   const router = useRouter()
-  const securityFee = "0.001";
-  const SECURITY_FEE = 10;
+  const securityFee = 0.001; // returns a BigInt value
+  
 
-  const securityFeeInEther = parseEther(securityFee);
+  //const securityFeeInEther = parseEther(securityFee);
   const priceInEther = parseEther(price);
   const setApartment = useApartmentStore(state => state.setApartment)
-  const totalInEther = priceInEther + securityFeeInEther;
+  //const totalInEther = priceInEther + securityFeeInEther;
   //const total = formatEther(totalInEther);
-  const booking = useApartmentStore((state) => state.booking)
+  const getBookingById = useApartmentStore((state) => state.getBookingById)
+  const booking = getBookingById(1)
+  console.log('booking total:', booking.total)
   //const total = booking.total + parseFloat(securityFee);
-  const fee = (SECURITY_FEE / 100) * booking.total;
+  
+
+  //const fee = (securityFee * BigInt(booking.total)) / BigInt(100);
+
+  // booking.total is a number in ETH
+  //const totalInWei = parseEther(booking.total.toString()); // now BigInt
+  const fee = (securityFee / 100) * booking.total;
+
   const total = (booking.total + fee);
   console.log("bookingDate:", booking.dates);
   console.log("apartmentID:", apartmentId);
@@ -79,7 +88,7 @@ export default function BookingActions({ price, apartmentId }) {
         </div>
         <div className="flex justify-between">
           <span>Security Fee:</span>
-          <span>{securityFee}ETH</span>
+          <span>{fee}ETH</span>
         </div>
         <div className="flex justify-between font-bold border-t pt-2">
           <span>Total Fee:</span>

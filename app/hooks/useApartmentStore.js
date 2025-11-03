@@ -8,7 +8,7 @@ export const useApartmentStore = create((set, get) => ({
   bookedApartments: [],
   reviews: [],
   securityFee: 0,
-  bookings: [],
+  //bookings: [],
   booking: null,
   timestamps: [],
   reviewModal: false,
@@ -16,16 +16,18 @@ export const useApartmentStore = create((set, get) => ({
   error: null,
   selectedApartmentId: null,
 
-
-
   // 🔹 Booking state
   booking: {
     startDate: null,
     endDate: null,
     price: 0,
     total: 0,
+    dates: [],
   },
 
+  // ===============================
+  // 🔹 Apartment Management
+  // ===============================
   storeApartment: (id, data) =>
     set((state) => ({
       appartments: {
@@ -35,76 +37,130 @@ export const useApartmentStore = create((set, get) => ({
       appartment: data,
     })),
 
-  // Apartment Actions
-  addApartment: (newApartment) => set(state => ({
-    apartments: [...state.apartments, newApartment]
-  })),
+  addApartment: (newApartment) =>
+    set((state) => ({
+      apartments: [...state.apartments, newApartment],
+    })),
+
   setApartment: (apartment) => set({ apartment }),
   setApartments: (apartments) => set({ apartments }),
 
-
   getApartmentById: (id) => get().appartments[id],
 
-  
   setSelectedApartmentId: (id) => set({ selectedApartmentId: id }),
 
-  // Booking Actions
-  setBookings: (bookings) => set({ bookings }),
-
-  addBooking: (newBooking) => set(state => ({
-    bookings: [...state.bookings, newBooking]
-  })),
-  cancelBooking: (bookingId) => set(state => ({
-    bookings: state.bookings.filter(booking => booking.id !== bookingId)
-  })),
-
-  setBookedApartments: (apartments) => set({ bookedApartments: apartments }),
-
-  // Review Actions
+  // ===============================
+  // 🔹 Review Management
+  // ===============================
   setReviews: (reviews) => set({ reviews }),
-  addReview: (newReview) => set(state => ({
-    reviews: [...state.reviews, newReview]
-  })),
-  toggleReviewModal: () => set(state => ({
-    reviewModal: !state.reviewModal
-  })),
+  addReview: (newReview) =>
+    set((state) => ({
+      reviews: [...state.reviews, newReview],
+    })),
+  toggleReviewModal: () =>
+    set((state) => ({
+      reviewModal: !state.reviewModal,
+    })),
 
-  // Timestamp Actions
+  // ===============================
+  // 🔹 Timestamp & Fee
+  // ===============================
   setTimestamps: (timestamps) => set({ timestamps }),
-  addTimestamp: (newTimestamp) => set(state => ({
-    timestamps: [...state.timestamps, newTimestamp]
-  })),
-  // Security Fee Actions
+  addTimestamp: (newTimestamp) =>
+    set((state) => ({
+      timestamps: [...state.timestamps, newTimestamp],
+    })),
   setSecurityFee: (fee) => set({ securityFee: fee }),
-  //setSecurityFee: (securityFee) => set({ securityFee }),
 
-
+  // ===============================
+  // 🔹 Loading & Error
+  // ===============================
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
 
-  addBookedDates: (dates) => set((state) => ({
-    apartment: state.apartment ? {
-      ...state.apartment,
-      bookedDates: [...state.apartment.bookedDates, ...dates]
-    } : null
-  })),
+  // ===============================
+  // 🔹 Apartment Booked Dates
+  // ===============================
+  addBookedDates: (dates) =>
+    set((state) => ({
+      apartment: state.apartment
+        ? {
+            ...state.apartment,
+            bookedDates: [...state.apartment.bookedDates, ...dates],
+          }
+        : null,
+    })),
 
-  // 🔹 Set booking dates + auto total calculation
-  setBookingDates: (startDate, endDate, price) => {
+  // ===============================
+  // 🔹 Booking Date Calculation
+  // ===============================
+  bookings: {}, // { [id]: { startDate, endDate, price, total, dates, ...otherData } }
+
+  // 🔹 Add or update booking data from smart contract
+  addBooking: (id, bookingData) => {
+    set((state) => ({
+      bookings: {
+        ...state.bookings,
+        [id]: {
+          ...(state.bookings[id] || {}),
+          ...bookingData,
+        },
+      },
+    }))
+  },
+
+  // 🔹 Set booking dates and total by booking id
+  setBookingDatesById: (id, startDate, endDate, price) => {
     const diffTime = Math.abs(endDate.getTime() - startDate.getTime())
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
     const total = (diffDays + 1) * price
-    // build list of timestamps
+
+    // build list of timestamps (seconds)
     const dates = []
     const d = new Date(startDate)
     while (d <= endDate) {
-      dates.push(Math.floor(d.getTime() / 1000)) // store as seconds
+      dates.push(Math.floor(d.getTime() / 1000))
       d.setDate(d.getDate() + 1)
     }
 
-    set({
-      booking: { startDate, endDate, price, total, dates }
-    })
+    // store under booking id
+    set((state) => ({
+      bookings: {
+        ...state.bookings,
+        [id]: {
+          ...(state.bookings[id] || {}),
+          startDate,
+          endDate,
+          price,
+          total,
+          dates,
+        },
+      },
+    }))
   },
 
-}))
+  // 🔹 Get booking by ID
+  getBookingById: (id) => get().bookings[id] || {
+    startDate: null,
+    endDate: null,
+    price: 0,
+    total: 0,
+    dates: [],
+  },
+
+
+  // ===============================
+  // 🔹 Booking Management
+  // ===============================
+
+  
+
+  // ✅ Remove booking by ID
+  removeBooking: (id) =>
+    set((state) => ({
+      bookings: state.bookings.filter((b) => b.id !== id),
+    })),
+
+  // ✅ Clear all bookings
+  clearBookings: () => set({ bookings: [], booking: null }),
+}));

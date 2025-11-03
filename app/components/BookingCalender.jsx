@@ -15,8 +15,12 @@ const BookingCalendar = ({ price }) => {
     }
   ])
 
-  const setBookingDates = useApartmentStore((state) => state.setBookingDates)
-  const booking = useApartmentStore((state) => state.booking)
+  const setBookingDatesById = useApartmentStore((state) => state.setBookingDatesById)
+  const getBookingById = useApartmentStore((state) => state.getBookingById)
+  const booking = getBookingById(1)
+
+  console.log("Booking:", booking);
+
 
   return (
     <div className="border rounded-lg p-4">
@@ -28,7 +32,7 @@ const BookingCalendar = ({ price }) => {
         onChange={item => {
           setDateRange([item.selection])
           if (item.selection.startDate && item.selection.endDate) {
-            setBookingDates(item.selection.startDate, item.selection.endDate, price)
+            setBookingDatesById(1, item.selection.startDate, item.selection.endDate, price)
           }
         }}
         moveRangeOnFirstSelection={false}

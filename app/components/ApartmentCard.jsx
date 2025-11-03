@@ -6,6 +6,11 @@ const ApartmentCard = ({
   showBookButton = true,
   showTenantInfo = false,
 }) => {
+  const images = apartment.images;
+  const firstImage = images.split(",")[0];
+  console.log(firstImage); // "gvufd6ikwwoujjessabc.jpg"
+  const baseUrl = "https://res.cloudinary.com/dn1jishai/image/upload/v17233707463/rentapp-apartments/";
+  
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 relative">
       {apartment.isBooked && (
@@ -15,7 +20,7 @@ const ApartmentCard = ({
       )}
 
       <img
-        src={apartment.image || "/default-apartment.jpg"}
+        src={`${baseUrl}${firstImage}`}
         alt={apartment.name}
         className="w-full h-48 object-cover"
       />
